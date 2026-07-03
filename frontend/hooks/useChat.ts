@@ -1,42 +1,61 @@
 "use client";
 
-import { useState } from "react";
-import { ChatMessage } from "../types/chat";
+import { useCallback, useRef, useState } from "react";
+import { ChatMessage } from "@/types/chat";
+import { api } from "@/services/api";
+
+function randomId(): string {
+  return Math.random().toString(36).slice(2, 11) + Date.now().toString(36);
+}
 
 export function useChat() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
+  const abortRef = useRef(false);
 
-  async function sendMessage(text: string) {
-    if (!text.trim()) return;
+  const sendMessage = useCallback(async (content: string) => {
+    const trimmed = content.trim();
+    if (!trimmed) return;
 
     const userMessage: ChatMessage = {
-      id: Date.now().toString(),
+      id: randomId(),
       role: "user",
-      content: text,
+      content: trimmed,
+      createdAt: Date.now(),
     };
 
     setMessages((prev) => [...prev, userMessage]);
+    setIsTyping(true);
 
-    setLoading(true);
+    try {
+      const { message } = await api.sendMessage(trimmed);
+      if (!abortRef.current) {
+        setMessages((prev) => [...prev, message]);
+      }
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: randomId(),
+          role: "assistant",
+          content:
+            "Something went wrong while generating a response. Please try again.",
+          createdAt: Date.now(),
+        },
+      ]);
+    } finally {
+      setIsTyping(false);
+    }
+  }, []);
 
-    // Temporary AI response
-    setTimeout(() => {
-      const aiMessage: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: `Hello 👋 You said:\n\n"${text}"`,
-      };
-
-      setMessages((prev) => [...prev, aiMessage]);
-
-      setLoading(false);
-    }, 1000);
-  }
+  const clearChat = useCallback(() => {
+    setMessages([]);
+  }, []);
 
   return {
     messages,
-    loading,
+    isTyping,
     sendMessage,
+    clearChat,
   };
 }

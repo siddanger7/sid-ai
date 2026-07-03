@@ -1,69 +1,40 @@
 "use client";
 
-import Message from "./messages/Message";
-import { ChatMessage } from "../../types/chat";
+import { useEffect, useRef } from "react";
+import { AnimatePresence } from "framer-motion";
+import { ChatMessage } from "@/types/chat";
+import { ChatBubble } from "@/components/chat/ChatBubble";
+import { TypingIndicator } from "@/components/chat/TypingIndicator";
+import { WelcomeScreen } from "@/components/chat/WelcomeScreen";
 
-interface Props {
+interface ChatWindowProps {
   messages: ChatMessage[];
-  loading: boolean;
+  isTyping: boolean;
+  onPromptSelect: (prompt: string) => void;
 }
 
-export default function ChatWindow({
-  messages,
-  loading,
-}: Props) {
+export function ChatWindow({ messages, isTyping, onPromptSelect }: ChatWindowProps) {
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [messages, isTyping]);
+
   if (messages.length === 0) {
-    return (
-      <div className="flex flex-1 items-center justify-center">
-
-        <div className="text-center">
-
-          <div className="mb-8 text-7xl">
-
-            🤖
-
-          </div>
-
-          <h1 className="mb-3 text-6xl font-bold text-white">
-
-            Welcome to sid.ai
-
-          </h1>
-
-          <p className="text-xl text-gray-400">
-
-            How can I help you today?
-
-          </p>
-
-        </div>
-
-      </div>
-    );
+    return <WelcomeScreen onPromptSelect={onPromptSelect} />;
   }
 
   return (
-    <div className="flex-1 overflow-y-auto px-8 py-10">
-
-      <div className="mx-auto max-w-5xl">
-
+    <div className="mx-auto flex h-full w-full max-w-3xl flex-col gap-6 overflow-y-auto px-4 py-6 scrollbar-thin sm:px-6">
+      <AnimatePresence initial={false}>
         {messages.map((message) => (
-          <Message
-            key={message.id}
-            message={message}
-          />
+          <ChatBubble key={message.id} message={message} />
         ))}
+      </AnimatePresence>
 
-        {loading && (
-          <div className="mt-6 animate-pulse text-gray-400">
+      {isTyping && <TypingIndicator />}
 
-            🤖 sid.ai is thinking...
-
-          </div>
-        )}
-
-      </div>
-
+      <div ref={bottomRef} />
     </div>
   );
 }
