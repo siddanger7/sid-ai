@@ -1,28 +1,41 @@
+"use client";
+
+import { Sparkles } from "lucide-react";
+
 export default function Header() {
   return (
-    <header className="flex items-center justify-between border-b border-white/10 bg-white/5 px-8 py-5 backdrop-blur-xl">
+    <header className="flex h-20 items-center justify-between border-b border-white/10 bg-[#090b17]/60 px-8 backdrop-blur-xl">
 
       <div>
 
-        <h1 className="text-2xl font-bold">
+        <h2 className="text-2xl font-bold text-white">
 
           sid.ai
 
-        </h1>
+        </h2>
 
         <p className="text-sm text-gray-400">
 
-          Your Personal AI Assistant
+          Intelligent Personal Assistant
 
         </p>
 
       </div>
 
-      <button className="rounded-xl border border-white/10 bg-white/5 px-5 py-2 text-white transition hover:bg-white/10">
+      <div className="flex items-center gap-3 rounded-full border border-blue-500/30 bg-blue-500/10 px-5 py-2">
 
-        Settings
+        <Sparkles
+          className="text-blue-400"
+          size={18}
+        />
 
-      </button>
+        <span className="text-blue-300">
+
+          Online
+
+        </span>
+
+      </div>
 
     </header>
   );
