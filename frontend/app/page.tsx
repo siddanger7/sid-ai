@@ -11,7 +11,7 @@ import { useChat } from "@/hooks/useChat";
 
 export default function Home() {
   const { messages, isTyping, sendMessage, clearChat } = useChat();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   return (
@@ -19,14 +19,13 @@ export default function Home() {
       <Background />
 
       <Sidebar
-        isOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-        onNewChat={() => {
-          clearChat();
-          setSidebarOpen(false);
-        }}
-        onOpenSettings={() => setSettingsOpen(true)}
-      />
+  isOpen={sidebarOpen}
+  onClose={() => setSidebarOpen(false)}
+  onNewChat={() => {
+    clearChat();
+  }}
+  onOpenSettings={() => setSettingsOpen(true)}
+/>
 
       <div className="flex min-w-0 flex-1 flex-col">
         <Header />

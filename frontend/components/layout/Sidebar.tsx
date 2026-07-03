@@ -11,41 +11,10 @@ import {
   Trash2,
 } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
-import { Conversation } from "@/types/chat";
+import { useConversations } from "@/hooks/useConversations";
 import { cn, truncate } from "@/lib/utils";
 
-const MOCK_CONVERSATIONS: Conversation[] = [
-  {
-    id: "1",
-    title: "CO-PO Mapping Framework",
-    preview: "Designing a PRS methodology for CSE math modules...",
-    updatedAt: Date.now() - 1000 * 60 * 40,
-  },
-  {
-    id: "2",
-    title: "Edge Agent Architecture",
-    preview: "Explaining the event broker with a nervous system analogy...",
-    updatedAt: Date.now() - 1000 * 60 * 60 * 5,
-  },
-  {
-    id: "3",
-    title: "Resume Formatting",
-    preview: "Refining internship dates and certifications...",
-    updatedAt: Date.now() - 1000 * 60 * 60 * 24,
-  },
-  {
-    id: "4",
-    title: "React Performance Tips",
-    preview: "Memoization strategies for large component trees...",
-    updatedAt: Date.now() - 1000 * 60 * 60 * 30,
-  },
-  {
-    id: "5",
-    title: "System Design Notes",
-    preview: "Command center UI and broker communication patterns...",
-    updatedAt: Date.now() - 1000 * 60 * 60 * 50,
-  },
-];
+
 
 interface SidebarProps {
   isOpen: boolean;
@@ -56,16 +25,23 @@ interface SidebarProps {
 
 export function Sidebar({ isOpen, onClose, onNewChat, onOpenSettings }: SidebarProps) {
   const [query, setQuery] = useState("");
-  const [conversations, setConversations] = useState(MOCK_CONVERSATIONS);
+  const {
+  conversations,
+  newConversation,
+  deleteConversation,
+} = useConversations();
   const [activeId, setActiveId] = useState<string | null>(null);
 
   const filtered = conversations.filter((c) =>
     c.title.toLowerCase().includes(query.toLowerCase())
   );
 
-  const handleDelete = (id: string, e: React.MouseEvent) => {
+  const handleDelete = (
+    id: string,
+    e: React.MouseEvent
+  ) => {
     e.stopPropagation();
-    setConversations((prev) => prev.filter((c) => c.id !== id));
+    deleteConversation(id);
   };
 
   return (
@@ -105,7 +81,10 @@ export function Sidebar({ isOpen, onClose, onNewChat, onOpenSettings }: SidebarP
 
         <div className="px-3">
           <button
-            onClick={onNewChat}
+            onClick={() => {
+              newConversation();
+              onNewChat();
+            }}
             className={cn(
               "group flex w-full items-center gap-2.5 rounded-xl px-3.5 py-2.5",
               "bg-gradient-to-r from-blue-600/90 to-purple-600/90",
@@ -166,7 +145,7 @@ export function Sidebar({ isOpen, onClose, onNewChat, onOpenSettings }: SidebarP
                     {chat.title}
                   </p>
                   <p className="truncate text-[11.5px] text-white/35">
-                    {truncate(chat.preview, 38)}
+                    New Conversation
                   </p>
                 </div>
                 <span
