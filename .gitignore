@@ -1,0 +1,29 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# Next.js
+frontend/.next/
+frontend/node_modules/
+
+# Python cache
+.pytest_cache/
+
+# Environment
+.env
+.env.local
+
+# VS Code
+.vscode/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Model outputs
+outputs/
+unsloth_compiled_cache/

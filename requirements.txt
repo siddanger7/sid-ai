@@ -1,0 +1,15 @@
+fastapi
+uvicorn
+unsloth
+torch
+transformers
+trl
+peft
+datasets
+accelerate
+bitsandbytes
+sentencepiece
+safetensors
+huggingface_hub
+python-multipart
+pydantic
