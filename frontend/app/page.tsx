@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Background } from "@/components/layout/Background";
 import { Sidebar } from "@/components/layout/Sidebar";
-import { Header } from "@/components/layout/Header";
+import Header from "@/components/layout/Header";
 import { ChatWindow } from "@/components/chat/ChatWindow";
 import { MessageInput } from "@/components/input/MessageInput";
 import { SettingsModal } from "@/components/settings/SettingsModal";
@@ -29,7 +29,7 @@ export default function Home() {
       />
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <Header onToggleSidebar={() => setSidebarOpen((v) => !v)} />
+        <Header />
 
         <main className="flex min-h-0 flex-1 flex-col">
           <div className="min-h-0 flex-1">
