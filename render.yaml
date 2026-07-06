@@ -2,41 +2,32 @@ services:
   - type: web
     name: sidai-backend
     runtime: python
-    repo: https://github.com/yourusername/sid-ai
+    repo: https://github.com/siddanger7/sid-ai
     plan: free
     region: oregon
-    buildCommand: pip install -r backend/requirements.txt
-    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
+    buildCommand: cd backend && pip install -r requirements.txt
+    startCommand: cd backend && uvicorn app:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: JWT_SECRET_KEY
         generateValue: true
-      - key: DATABASE_URL
-        fromService:
-          type: pserv
-          name: sidai-db
-          property: connectionString
       - key: CORS_ORIGINS
         value: https://sidai-frontend.onrender.com
       - key: LOG_LEVEL
         value: INFO
+      - key: DATABASE_URL
+        value: sqlite+aiosqlite:////tmp/sidai.db
+      - key: LLAMA_SERVER_URL
+        value: https://llama-server.onrender.com/v1/chat/completions
+    healthCheckPath: /health
 
   - type: web
     name: sidai-frontend
     runtime: node
-    repo: https://github.com/yourusername/sid-ai
+    repo: https://github.com/siddanger7/sid-ai
     plan: free
     region: oregon
-    buildCommand: npm install && npm run build
-    startCommand: npm start
+    buildCommand: cd frontend && npm install && npm run build
+    startCommand: cd frontend && npm start
     envVars:
       - key: NEXT_PUBLIC_API_URL
         value: https://sidai-backend.onrender.com
-
-  - type: pserv
-    name: sidai-db
-    plan: free
-    region: oregon
-    disk:
-      name: data
-      mountPath: /var/lib/postgresql/data
-      sizeGB: 1
