@@ -6,7 +6,7 @@ from typing import AsyncGenerator
 
 import httpx
 
-from config import LLAMA_SERVER_URL
+from config import LLM_PROVIDER, LLAMA_SERVER_URL, OPENAI_API_KEY, OPENAI_BASE_URL, OPENAI_MODEL
 from rag import build_rag_context
 
 logger = logging.getLogger("SID.AI")
@@ -45,6 +45,28 @@ def _store_cache(messages: list[dict], response: str, **params) -> None:
 
 
 # ---------------------------------------------------------------------------
+#  Endpoint resolution
+# ---------------------------------------------------------------------------
+
+def _llm_headers() -> dict:
+    if LLM_PROVIDER == "openai":
+        return {"Authorization": f"Bearer {OPENAI_API_KEY}", "Content-Type": "application/json"}
+    return {"Content-Type": "application/json"}
+
+
+def _llm_url() -> str:
+    if LLM_PROVIDER == "openai":
+        return f"{OPENAI_BASE_URL.rstrip('/')}/chat/completions"
+    return LLAMA_SERVER_URL
+
+
+def _add_provider_fields(payload: dict) -> dict:
+    if LLM_PROVIDER == "openai":
+        payload["model"] = OPENAI_MODEL
+    return payload
+
+
+# ---------------------------------------------------------------------------
 #  Payload builder
 # ---------------------------------------------------------------------------
 
@@ -65,17 +87,17 @@ def build_payload(
         system += "\n\n" + rag_context
 
     full_messages = [{"role": "system", "content": system}] + messages
-    return {
+    return _add_provider_fields({
         "messages": full_messages,
         "max_tokens": max_tokens,
         "temperature": temperature,
         "top_p": top_p,
         "stream": stream,
-    }
+    })
 
 
 # ---------------------------------------------------------------------------
-#  Sync inference (non‑streaming) with caching
+#  Sync inference
 # ---------------------------------------------------------------------------
 
 def generate_response(
@@ -91,14 +113,14 @@ def generate_response(
     payload = build_payload(messages, stream=False, max_tokens=max_tokens, temperature=temperature, top_p=top_p)
     try:
         with httpx.Client(timeout=httpx.Timeout(300.0)) as client:
-            resp = client.post(LLAMA_SERVER_URL, json=payload)
+            resp = client.post(_llm_url(), json=payload, headers=_llm_headers())
             resp.raise_for_status()
             data = resp.json()
             text = data["choices"][0]["message"]["content"].strip()
             _store_cache(messages, text, max_tokens=max_tokens, temperature=temperature, top_p=top_p)
             return text
     except Exception as e:
-        logger.exception("llama-server call failed")
+        logger.exception("LLM call failed (%s)", LLM_PROVIDER)
         raise
 
 
@@ -115,7 +137,7 @@ async def generate_response_stream(
     payload = build_payload(messages, stream=True, max_tokens=max_tokens, temperature=temperature, top_p=top_p)
     try:
         async with httpx.AsyncClient(timeout=httpx.Timeout(300.0)) as client:
-            async with client.stream("POST", LLAMA_SERVER_URL, json=payload) as resp:
+            async with client.stream("POST", _llm_url(), json=payload, headers=_llm_headers()) as resp:
                 buffer = ""
                 async for raw in resp.aiter_bytes():
                     buffer += raw.decode("utf-8", errors="replace")
@@ -129,18 +151,15 @@ async def generate_response_stream(
                         if line:
                             yield line
     except Exception as e:
-        logger.exception("llama-server streaming failed")
+        logger.exception("LLM streaming failed (%s)", LLM_PROVIDER)
         yield f"\n\n[Error: {e}]"
 
 
 # ---------------------------------------------------------------------------
-#  SSE line parser (optimised)
+#  SSE line parser
 # ---------------------------------------------------------------------------
 
 def _parse_sse_line(buffer: str) -> tuple[str | None, str]:
-    """Extract one SSE data line from the buffer.
-    Returns (token_or_None, remaining_buffer).
-    """
     idx = buffer.find("\n")
     if idx == -1:
         return None, buffer
