@@ -85,6 +85,10 @@ export default function Home() {
         onClose={() => setSidebarOpen(false)}
         onNewChat={handleNewChat}
         onOpenSettings={() => setSettingsOpen(true)}
+        conversations={conversations}
+        activeId={activeId}
+        onSelectConversation={selectConversation}
+        onDeleteConversation={deleteConversation}
       />
 
       <div className="flex min-w-0 flex-1 flex-col">

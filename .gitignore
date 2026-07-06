@@ -27,3 +27,9 @@ Thumbs.db
 # Model outputs
 outputs/
 unsloth_compiled_cache/
+
+# One-time conversion tools
+llama_cpp_src/
+llama_bin/
+llama_bin.zip
+merge_lora.py

@@ -11,8 +11,8 @@ import {
   Trash2,
 } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
-import { useConversations } from "@/hooks/useConversations";
-import { cn, truncate } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { Conversation } from "@/types/conversation";
 
 
 
@@ -21,17 +21,14 @@ interface SidebarProps {
   onClose: () => void;
   onNewChat: () => void;
   onOpenSettings: () => void;
+  conversations: Conversation[];
+  activeId: string | null;
+  onSelectConversation: (id: string) => void;
+  onDeleteConversation: (id: string) => void;
 }
 
-export function Sidebar({ isOpen, onClose, onNewChat, onOpenSettings }: SidebarProps) {
+export function Sidebar({ isOpen, onClose, onNewChat, onOpenSettings, conversations, activeId, onSelectConversation, onDeleteConversation }: SidebarProps) {
   const [query, setQuery] = useState("");
-  const {
-  conversations,
-  activeId,
-  createConversation,
-  deleteConversation,
-  selectConversation,
-} = useConversations();
 
   const filtered = conversations.filter((c) =>
     c.title.toLowerCase().includes(query.toLowerCase())
@@ -42,7 +39,7 @@ export function Sidebar({ isOpen, onClose, onNewChat, onOpenSettings }: SidebarP
     e: React.MouseEvent
   ) => {
     e.stopPropagation();
-    deleteConversation(id);
+    onDeleteConversation(id);
   };
 
   return (
@@ -83,7 +80,6 @@ export function Sidebar({ isOpen, onClose, onNewChat, onOpenSettings }: SidebarP
         <div className="px-3">
           <button
             onClick={() => {
-              createConversation();
               onNewChat();
             }}
             className={cn(
@@ -130,7 +126,7 @@ export function Sidebar({ isOpen, onClose, onNewChat, onOpenSettings }: SidebarP
             {filtered.map((chat) => (
               <button
                 key={chat.id}
-                onClick={() => selectConversation(chat.id)}
+                onClick={() => onSelectConversation(chat.id)}
                 className={cn(
                   "group relative flex w-full items-start gap-2.5 rounded-lg px-2.5 py-2.5 text-left",
                   "transition-colors hover:bg-white/[0.06]",
