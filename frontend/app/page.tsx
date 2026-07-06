@@ -77,7 +77,7 @@ export default function Home() {
   }, [createConversation]);
 
   return (
-    <div className="relative flex h-dvh w-full overflow-hidden text-white">
+    <div className="relative flex h-dvh w-full overflow-hidden text-[var(--text-primary)]">
       <Background />
 
       <Sidebar

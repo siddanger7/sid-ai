@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 
 export function Background() {
   return (
-    <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-black">
+    <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-[var(--bg-primary)]">
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:64px_64px]" />
 
       <motion.div

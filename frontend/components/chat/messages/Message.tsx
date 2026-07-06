@@ -17,7 +17,7 @@ export default function Message({ message }: Props) {
         className={`max-w-2xl rounded-2xl px-5 py-4 whitespace-pre-wrap ${
           isUser
             ? "bg-blue-600 text-white"
-            : "bg-white/10 text-white backdrop-blur-xl"
+            : "bg-[var(--bg-surface)] text-[var(--text-primary)] backdrop-blur-xl"
         }`}
       >
         {message.content}

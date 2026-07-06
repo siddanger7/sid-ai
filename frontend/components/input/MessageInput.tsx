@@ -49,10 +49,11 @@ export function MessageInput({ onSend, disabled }: MessageInputProps) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
           className={cn(
-            "flex items-end gap-2 rounded-2xl border border-white/10 bg-white/[0.05] p-2 backdrop-blur-2xl",
-            "shadow-[0_0_35px_rgba(0,0,0,0.5)] transition-colors focus-within:border-blue-400/40",
+            "flex items-end gap-2 rounded-2xl border border-[var(--border)] bg-[var(--bg-input)] p-2",
+            "transition-colors focus-within:border-blue-400/40",
             "focus-within:shadow-[0_0_35px_rgba(99,102,241,0.2)]"
           )}
+          style={{ boxShadow: "0 0 35px var(--shadow-input)" }}
         >
           <AttachmentButton />
 
@@ -61,10 +62,10 @@ export function MessageInput({ onSend, disabled }: MessageInputProps) {
             value={value}
             onChange={handleInput}
             onKeyDown={handleKeyDown}
-            placeholder="Message sid.ai..."
+            placeholder="Message SID.AI..."
             rows={1}
             disabled={disabled}
-            className="max-h-[200px] flex-1 resize-none bg-transparent px-1 py-2 text-[14px] text-white/90 outline-none placeholder:text-white/30 disabled:opacity-50"
+            className="max-h-[200px] flex-1 resize-none bg-transparent px-1 py-2 text-[14px] text-[var(--text-primary)] outline-none placeholder:text-[var(--text-faint)] disabled:opacity-50"
           />
 
           <button
@@ -72,7 +73,7 @@ export function MessageInput({ onSend, disabled }: MessageInputProps) {
             onClick={() => setIsRecording((v) => !v)}
             className={cn(
               "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors",
-              isRecording ? "bg-red-500/20 text-red-400" : "text-white/50 hover:bg-white/10 hover:text-white"
+              isRecording ? "bg-red-500/20 text-red-400" : "text-[var(--text-muted)] hover:bg-[var(--bg-surface)] hover:text-[var(--text-primary)]"
             )}
             title="Voice input"
           >
@@ -87,15 +88,15 @@ export function MessageInput({ onSend, disabled }: MessageInputProps) {
               "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-all",
               value.trim() && !disabled
                 ? "bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-[0_0_20px_rgba(99,102,241,0.5)] hover:scale-105"
-                : "bg-white/5 text-white/25"
+                : "bg-[var(--bg-hover)] text-[var(--text-very-faint)]"
             )}
           >
             <ArrowUp size={17} strokeWidth={2.5} />
           </button>
         </motion.div>
 
-        <p className="mt-2 text-center text-[11px] text-white/25">
-          sid.ai can make mistakes. Consider checking important information.
+        <p className="mt-2 text-center text-[11px] text-[var(--text-very-faint)]">
+          SID.AI can make mistakes. Consider checking important information.
         </p>
       </div>
     </div>

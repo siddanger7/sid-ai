@@ -10,8 +10,17 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "sid.ai",
+  title: "SID.AI",
   description: "Your Personal AI Assistant",
+  icons: [
+    { rel: "icon", url: "/favicon.ico", sizes: "48x48" },
+    { rel: "icon", url: "/favicon.png", sizes: "96x96", type: "image/png" },
+  ],
+  openGraph: {
+    title: "SID.AI",
+    description: "Your Personal AI Assistant",
+    images: ["/sid-ai-logo-v2.png"],
+  },
 };
 
 export const viewport: Viewport = {

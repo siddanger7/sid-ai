@@ -7,9 +7,9 @@ import logging
 from model import generate_response
 
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("sid.ai")
+logger = logging.getLogger("SID.AI")
 
-app = FastAPI(title="sid.ai API")
+app = FastAPI(title="SID.AI API")
 
 app.add_middleware(
     CORSMiddleware,
@@ -26,7 +26,7 @@ class ChatRequest(BaseModel):
 
 @app.get("/")
 def root():
-    return {"status": "sid.ai is running"}
+    return {"status": "SID.AI is running"}
 
 
 @app.post("/chat")

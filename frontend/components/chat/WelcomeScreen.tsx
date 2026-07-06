@@ -50,7 +50,7 @@ export function WelcomeScreen({ onPromptSelect }: WelcomeScreenProps) {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.1 }}
-        className="mb-2 text-center text-2xl font-semibold tracking-tight text-white sm:text-3xl"
+        className="mb-2 text-center text-2xl font-semibold tracking-tight text-[var(--text-primary)] sm:text-3xl"
       >
         What can I help you build today?
       </motion.h2>
@@ -58,7 +58,7 @@ export function WelcomeScreen({ onPromptSelect }: WelcomeScreenProps) {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.15 }}
-        className="mb-10 text-center text-sm text-white/40"
+        className="mb-10 text-center text-sm text-[var(--text-dim)]"
       >
         Ask anything — I'll do my best to give a clear, useful answer.
       </motion.p>
@@ -71,14 +71,14 @@ export function WelcomeScreen({ onPromptSelect }: WelcomeScreenProps) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.2 + i * 0.08 }}
             onClick={() => onPromptSelect(item.prompt)}
-            className="group flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-left backdrop-blur-xl transition-all hover:border-blue-400/30 hover:bg-white/[0.06] hover:shadow-[0_0_25px_rgba(99,102,241,0.15)]"
+            className="group flex items-start gap-3 rounded-2xl border border-[var(--border)] bg-[var(--bg-subtle)] p-4 text-left backdrop-blur-xl transition-all hover:border-blue-400/30 hover:bg-[var(--bg-hover)] hover:shadow-[0_0_25px_rgba(99,102,241,0.15)]"
           >
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500/20 to-purple-500/20 text-blue-300 transition-colors group-hover:from-blue-500/30 group-hover:to-purple-500/30">
               <item.icon size={16} />
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-medium text-white/90">{item.title}</p>
-              <p className="mt-0.5 truncate text-xs text-white/40">{item.subtitle}</p>
+              <p className="text-sm font-medium text-[var(--text-secondary)]">{item.title}</p>
+              <p className="mt-0.5 truncate text-xs text-[var(--text-dim)]">{item.subtitle}</p>
             </div>
           </motion.button>
         ))}

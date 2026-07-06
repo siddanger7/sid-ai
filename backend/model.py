@@ -2,7 +2,7 @@ import httpx
 import logging
 
 LLAMA_SERVER_URL = "http://127.0.0.1:8081/v1/chat/completions"
-logger = logging.getLogger("sid.ai")
+logger = logging.getLogger("SID.AI")
 
 
 def generate_response(prompt: str):
@@ -10,7 +10,7 @@ def generate_response(prompt: str):
         {
             "role": "system",
             "content": (
-                "You are sid.ai, an intelligent AI assistant created by Siddiq Mohamed. "
+                "You are SID.AI, an intelligent AI assistant created by Siddiq Mohamed. "
                 "Be helpful, accurate, professional, and concise."
             ),
         },

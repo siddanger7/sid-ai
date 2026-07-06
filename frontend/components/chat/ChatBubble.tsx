@@ -47,7 +47,7 @@ function renderInline(text: string, keyPrefix: string) {
   return parts.map((part, i) => {
     if (part.startsWith("**") && part.endsWith("**")) {
       return (
-        <strong key={`${keyPrefix}-${i}`} className="font-semibold text-white">
+        <strong key={`${keyPrefix}-${i}`} className="font-semibold text-[var(--text-primary)]">
           {part.slice(2, -2)}
         </strong>
       );
@@ -56,7 +56,7 @@ function renderInline(text: string, keyPrefix: string) {
       return (
         <code
           key={`${keyPrefix}-${i}`}
-          className="rounded-md bg-white/10 px-1.5 py-0.5 font-mono text-[0.85em] text-blue-300"
+            className="rounded-md bg-[var(--bg-surface)] px-1.5 py-0.5 font-mono text-[0.85em] text-blue-300"
         >
           {part.slice(1, -1)}
         </code>
@@ -116,14 +116,14 @@ function CodeBlock({ language, content }: { language: string; content: string })
   };
 
   return (
-    <div className="my-2 overflow-hidden rounded-xl border border-white/10 bg-black/60">
-      <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.03] px-3.5 py-2">
-        <span className="text-[11px] font-medium uppercase tracking-wider text-white/40">
+    <div className="my-2 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)]">
+        <div className="flex items-center justify-between border-b border-[var(--border)] bg-[var(--bg-subtle)] px-3.5 py-2">
+          <span className="text-[11px] font-medium uppercase tracking-wider text-[var(--text-dim)]">
           {language}
         </span>
         <button
           onClick={handleCopy}
-          className="flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] text-white/50 transition-colors hover:bg-white/10 hover:text-white"
+          className="flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-surface)] hover:text-[var(--text-primary)]"
         >
           {copied ? <Check size={12} /> : <Copy size={12} />}
           {copied ? "Copied" : "Copy"}
@@ -151,12 +151,12 @@ export function ChatBubble({ message }: ChatBubbleProps) {
         className={cn(
           "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
           isUser
-            ? "bg-white/10"
+            ? "bg-[var(--bg-surface)]"
             : "bg-gradient-to-br from-blue-500 to-purple-600 shadow-[0_0_15px_rgba(99,102,241,0.4)]"
         )}
       >
         {isUser ? (
-          <User size={14} className="text-white/80" />
+          <User size={14} className="text-[var(--text-secondary)]" />
         ) : (
           <Sparkles size={14} className="text-white" />
         )}
@@ -165,10 +165,10 @@ export function ChatBubble({ message }: ChatBubbleProps) {
       <div className={cn("flex max-w-[80%] flex-col gap-1", isUser && "items-end")}>
         <div
           className={cn(
-            "rounded-2xl px-4 py-3 text-[14px] text-white/90 backdrop-blur-xl",
+            "rounded-2xl px-4 py-3 text-[14px] text-[var(--text-secondary)] backdrop-blur-xl",
             isUser
               ? "rounded-tr-sm bg-gradient-to-br from-blue-600/80 to-purple-600/70 text-white shadow-[0_0_20px_rgba(99,102,241,0.25)]"
-              : "rounded-tl-sm border border-white/10 bg-white/[0.04]"
+              : "rounded-tl-sm border border-[var(--border)] bg-[var(--bg-subtle)]"
           )}
         >
           {blocks.map((block, i) =>
@@ -179,7 +179,7 @@ export function ChatBubble({ message }: ChatBubbleProps) {
             )
           )}
         </div>
-        <span className="px-1 text-[11px] text-white/25">{formatTime(message.createdAt)}</span>
+        <span className="px-1 text-[11px] text-[var(--text-very-faint)]">{formatTime(message.createdAt)}</span>
       </div>
     </motion.div>
   );

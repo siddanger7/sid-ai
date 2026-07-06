@@ -30,7 +30,7 @@ export function AttachmentButton({ onFilesSelected }: AttachmentButtonProps) {
       <button
         type="button"
         onClick={() => inputRef.current?.click()}
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white/50 transition-colors hover:bg-white/10 hover:text-white"
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-surface)] hover:text-[var(--text-primary)]"
         title="Attach files"
       >
         <Paperclip size={17} />
@@ -42,15 +42,15 @@ export function AttachmentButton({ onFilesSelected }: AttachmentButtonProps) {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 8 }}
-            className="absolute bottom-11 left-0 flex flex-col gap-1.5 rounded-xl border border-white/10 bg-black/90 p-2 backdrop-blur-2xl"
+            className="absolute bottom-11 left-0 flex flex-col gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--bg-modal)] p-2 backdrop-blur-2xl"
           >
             {fileNames.map((name) => (
               <div
                 key={name}
-                className="flex items-center gap-2 rounded-lg bg-white/5 px-2.5 py-1.5 text-xs text-white/70"
+                className="flex items-center gap-2 rounded-lg bg-[var(--bg-hover)] px-2.5 py-1.5 text-xs text-[var(--text-soft)]"
               >
                 <span className="max-w-[140px] truncate">{name}</span>
-                <button onClick={() => removeFile(name)} className="text-white/40 hover:text-red-400">
+                <button onClick={() => removeFile(name)} className="text-[var(--text-dim)] hover:text-red-400">
                   <X size={12} />
                 </button>
               </div>

@@ -51,7 +51,7 @@ export function Sidebar({ isOpen, onClose, onNewChat, onOpenSettings, conversati
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
+            className="fixed inset-0 z-40 bg-[var(--bg-backdrop)]"
           />
         )}
       </AnimatePresence>
@@ -62,8 +62,7 @@ export function Sidebar({ isOpen, onClose, onNewChat, onOpenSettings, conversati
         transition={{ type: "spring", stiffness: 300, damping: 32 }}
         className={cn(
           "fixed left-0 top-0 z-50 flex h-full w-[280px] flex-col",
-          "border-r border-white/10 bg-black/60 backdrop-blur-2xl",
-          "lg:static lg:z-auto lg:translate-x-0"
+          "border-r border-[var(--border)] bg-[var(--bg-elevated)]"
         )}
         style={{ boxShadow: "4px 0 30px rgba(0,0,0,0.4)" }}
       >
@@ -71,7 +70,7 @@ export function Sidebar({ isOpen, onClose, onNewChat, onOpenSettings, conversati
           <Logo size="md" />
           <button
             onClick={onClose}
-            className="rounded-lg p-1.5 text-white/50 hover:bg-white/5 hover:text-white lg:hidden"
+            className="rounded-lg p-1.5 text-[var(--text-dim)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] lg:hidden"
           >
             <X size={18} />
           </button>
@@ -98,28 +97,28 @@ export function Sidebar({ isOpen, onClose, onNewChat, onOpenSettings, conversati
           <div className="relative">
             <Search
               size={15}
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/35"
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-faint)]"
             />
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search chats..."
               className={cn(
-                "w-full rounded-lg border border-white/10 bg-white/[0.04] py-2 pl-9 pr-3",
-                "text-sm text-white/85 placeholder:text-white/30",
-                "outline-none transition-colors focus:border-blue-500/50 focus:bg-white/[0.06]"
+                "w-full rounded-lg border border-[var(--border)] bg-[var(--bg-input)] py-2 pl-9 pr-3",
+                "text-sm text-[var(--text-secondary)] placeholder:text-[var(--text-faint)]",
+                "outline-none transition-colors focus:border-blue-500/50 focus:bg-[var(--bg-hover)]"
               )}
             />
           </div>
         </div>
 
         <div className="mt-5 flex-1 overflow-y-auto px-3 pb-3 scrollbar-thin">
-          <p className="px-1.5 pb-2 text-xs font-medium uppercase tracking-wider text-white/30">
+          <p className="px-1.5 pb-2 text-xs font-medium uppercase tracking-wider text-[var(--text-faint)]">
             Recent
           </p>
           <div className="space-y-1">
             {filtered.length === 0 && (
-              <p className="px-2 py-6 text-center text-xs text-white/30">
+              <p className="px-2 py-6 text-center text-xs text-[var(--text-faint)]">
                 No conversations found
               </p>
             )}
@@ -129,25 +128,25 @@ export function Sidebar({ isOpen, onClose, onNewChat, onOpenSettings, conversati
                 onClick={() => onSelectConversation(chat.id)}
                 className={cn(
                   "group relative flex w-full items-start gap-2.5 rounded-lg px-2.5 py-2.5 text-left",
-                  "transition-colors hover:bg-white/[0.06]",
-                  activeId === chat.id && "bg-white/[0.08]"
+                  "transition-colors hover:bg-[var(--bg-hover)]",
+                  activeId === chat.id && "bg-[var(--bg-active)]"
                 )}
               >
                 <MessageSquare
                   size={15}
-                  className="mt-0.5 shrink-0 text-white/40 group-hover:text-blue-400"
+                  className="mt-0.5 shrink-0 text-[var(--text-dim)] group-hover:text-blue-400"
                 />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-[13px] font-medium text-white/85">
+                  <p className="truncate text-[13px] font-medium text-[var(--text-secondary)]">
                     {chat.title}
                   </p>
-                  <p className="truncate text-[11.5px] text-white/35">
+                  <p className="truncate text-[11.5px] text-[var(--text-faint)]">
                     New Conversation
                   </p>
                 </div>
                 <span
                   onClick={(e) => handleDelete(chat.id, e)}
-                  className="shrink-0 rounded-md p-1 text-white/0 transition-colors hover:bg-white/10 hover:text-red-400 group-hover:text-white/30"
+                  className="shrink-0 rounded-md p-1 text-transparent transition-colors hover:bg-[var(--bg-surface)] hover:text-red-400 group-hover:text-[var(--text-faint)]"
                 >
                   <Trash2 size={13} />
                 </span>
@@ -156,21 +155,21 @@ export function Sidebar({ isOpen, onClose, onNewChat, onOpenSettings, conversati
           </div>
         </div>
 
-        <div className="border-t border-white/10 p-3">
+        <div className="border-t border-[var(--border)] p-3">
           <button
             onClick={onOpenSettings}
-            className="mb-1 flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2.5 text-sm text-white/70 transition-colors hover:bg-white/[0.06] hover:text-white"
+            className="mb-1 flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2.5 text-sm text-[var(--text-soft)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
           >
             <Settings size={16} />
             Settings
           </button>
-          <div className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 transition-colors hover:bg-white/[0.06]">
+          <div className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 transition-colors hover:bg-[var(--bg-hover)]">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-xs font-semibold text-white">
               S
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-[13px] font-medium text-white/85">Siddiq</p>
-              <p className="truncate text-[11px] text-white/35">Free Plan</p>
+              <p className="truncate text-[13px] font-medium text-[var(--text-secondary)]">Siddiq</p>
+              <p className="truncate text-[11px] text-[var(--text-faint)]">Free Plan</p>
             </div>
           </div>
         </div>
