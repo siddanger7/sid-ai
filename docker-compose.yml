@@ -1,0 +1,60 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8888:8888"
+    environment:
+      - LOG_LEVEL=INFO
+      - CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-change-me-in-production}
+      - JWT_EXPIRE_HOURS=72
+      - DATABASE_URL=sqlite+aiosqlite:///./sidai.db
+      - LLAMA_SERVER_URL=http://llama-server:8081/v1/chat/completions
+      - RATE_LIMIT_MAX=60
+      - RATE_LIMIT_WINDOW=60
+    volumes:
+      - backend_data:/app/chroma_db
+      - backend_data:/app/uploads
+      - backend_data:/app/logs
+      - backend_db:/app/sidai.db
+    restart: unless-stopped
+    networks:
+      - sidai-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8888
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - sidai-network
+
+  llama-server:
+    image: ghcr.io/ggerganov/llama.cpp:full
+    ports:
+      - "8081:8081"
+    volumes:
+      - ./outputs:/models
+    command: >
+      --server --host 0.0.0.0 --port 8081
+      -m /models/sid-ai-q4_k_m.gguf
+      -c 4096 -t 4 --no-warmup
+    restart: unless-stopped
+    networks:
+      - sidai-network
+
+volumes:
+  backend_data:
+  backend_db:
+
+networks:
+  sidai-network:
+    driver: bridge

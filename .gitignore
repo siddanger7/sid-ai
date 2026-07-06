@@ -4,8 +4,8 @@ __pycache__/
 *.pyc
 
 # Next.js
-frontend/.next/
-frontend/node_modules/
+.next/
+node_modules/
 
 # Python cache
 .pytest_cache/
@@ -14,8 +14,9 @@ frontend/node_modules/
 .env
 .env.local
 
-# VS Code
+# IDE
 .vscode/
+.idea/
 
 # Logs
 *.log
@@ -28,8 +29,20 @@ Thumbs.db
 outputs/
 unsloth_compiled_cache/
 
-# One-time conversion tools
-llama_cpp_src/
+# llama.cpp binaries
 llama_bin/
 llama_bin.zip
+
+# Conversion tools
+llama_cpp_src/
 merge_lora.py
+
+# Database
+*.db
+backend/chroma_db/
+
+# Uploads
+backend/uploads/
+
+# Docker
+backend/__pycache__/

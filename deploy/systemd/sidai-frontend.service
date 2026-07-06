@@ -1,0 +1,16 @@
+[Unit]
+Description=SID.AI Frontend (Next.js)
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/opt/sidai/frontend
+Environment=NODE_ENV=production
+EnvironmentFile=/opt/sidai/.env
+ExecStart=/usr/bin/node /opt/sidai/frontend/.next/standalone/server.js
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

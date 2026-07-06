@@ -55,7 +55,7 @@ export function MessageInput({ onSend, disabled }: MessageInputProps) {
           )}
           style={{ boxShadow: "0 0 35px var(--shadow-input)" }}
         >
-          <AttachmentButton />
+          <AttachmentButton disabled={disabled} />
 
           <textarea
             ref={textareaRef}

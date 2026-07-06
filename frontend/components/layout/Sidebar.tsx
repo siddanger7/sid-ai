@@ -9,38 +9,51 @@ import {
   Settings,
   X,
   Trash2,
+  LogOut,
 } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/context/AuthContext";
 import { Conversation } from "@/types/conversation";
-
-
 
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
   onNewChat: () => void;
   onOpenSettings: () => void;
+  onLogout: () => void;
   conversations: Conversation[];
   activeId: string | null;
   onSelectConversation: (id: string) => void;
   onDeleteConversation: (id: string) => void;
 }
 
-export function Sidebar({ isOpen, onClose, onNewChat, onOpenSettings, conversations, activeId, onSelectConversation, onDeleteConversation }: SidebarProps) {
+export function Sidebar({
+  isOpen,
+  onClose,
+  onNewChat,
+  onOpenSettings,
+  onLogout,
+  conversations,
+  activeId,
+  onSelectConversation,
+  onDeleteConversation,
+}: SidebarProps) {
   const [query, setQuery] = useState("");
+  const { user } = useAuth();
 
   const filtered = conversations.filter((c) =>
     c.title.toLowerCase().includes(query.toLowerCase())
   );
 
-  const handleDelete = (
-    id: string,
-    e: React.MouseEvent
-  ) => {
+  const handleDelete = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     onDeleteConversation(id);
   };
+
+  const initials = user?.username
+    ? user.username.charAt(0).toUpperCase()
+    : "?";
 
   return (
     <>
@@ -78,9 +91,7 @@ export function Sidebar({ isOpen, onClose, onNewChat, onOpenSettings, conversati
 
         <div className="px-3">
           <button
-            onClick={() => {
-              onNewChat();
-            }}
+            onClick={onNewChat}
             className={cn(
               "group flex w-full items-center gap-2.5 rounded-xl px-3.5 py-2.5",
               "bg-gradient-to-r from-blue-600/90 to-purple-600/90",
@@ -163,14 +174,26 @@ export function Sidebar({ isOpen, onClose, onNewChat, onOpenSettings, conversati
             <Settings size={16} />
             Settings
           </button>
-          <div className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 transition-colors hover:bg-[var(--bg-hover)]">
+
+          <div className="flex items-center gap-2.5 rounded-lg px-2.5 py-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-xs font-semibold text-white">
-              S
+              {initials}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-[13px] font-medium text-[var(--text-secondary)]">Siddiq</p>
-              <p className="truncate text-[11px] text-[var(--text-faint)]">Free Plan</p>
+              <p className="truncate text-[13px] font-medium text-[var(--text-secondary)]">
+                {user?.username || "User"}
+              </p>
+              <p className="truncate text-[11px] text-[var(--text-faint)]">
+                {user?.email || "Signed in"}
+              </p>
             </div>
+            <button
+              onClick={onLogout}
+              title="Sign out"
+              className="rounded-lg p-1.5 text-[var(--text-dim)] transition-colors hover:bg-[var(--bg-hover)] hover:text-red-400"
+            >
+              <LogOut size={15} />
+            </button>
           </div>
         </div>
       </motion.aside>

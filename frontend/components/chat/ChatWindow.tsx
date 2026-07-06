@@ -10,19 +10,35 @@ import { WelcomeScreen } from "@/components/chat/WelcomeScreen";
 interface ChatWindowProps {
   messages: ChatMessage[];
   isTyping: boolean;
+  streamingContent?: string;
   onPromptSelect: (prompt: string) => void;
 }
 
-export function ChatWindow({ messages, isTyping, onPromptSelect }: ChatWindowProps) {
+export function ChatWindow({
+  messages,
+  isTyping,
+  streamingContent,
+  onPromptSelect,
+}: ChatWindowProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [messages, isTyping]);
+  }, [messages, isTyping, streamingContent]);
 
-  if (messages.length === 0) {
+  if (messages.length === 0 && !streamingContent) {
     return <WelcomeScreen onPromptSelect={onPromptSelect} />;
   }
+
+  const streamingMessage: ChatMessage | null =
+    streamingContent
+      ? {
+          id: "streaming",
+          role: "assistant",
+          content: streamingContent,
+          createdAt: Date.now(),
+        }
+      : null;
 
   return (
     <div className="mx-auto flex h-full w-full max-w-3xl flex-col gap-6 overflow-y-auto px-4 py-6 scrollbar-thin sm:px-6">
@@ -32,7 +48,9 @@ export function ChatWindow({ messages, isTyping, onPromptSelect }: ChatWindowPro
         ))}
       </AnimatePresence>
 
-      {isTyping && <TypingIndicator />}
+      {streamingMessage && <ChatBubble message={streamingMessage} />}
+
+      {isTyping && !streamingContent && <TypingIndicator />}
 
       <div ref={bottomRef} />
     </div>
