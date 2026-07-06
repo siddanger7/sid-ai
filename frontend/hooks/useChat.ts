@@ -11,11 +11,14 @@ function randomId(): string {
 export function useChat() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isTyping, setIsTyping] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const abortRef = useRef(false);
 
   const sendMessage = useCallback(async (content: string) => {
     const trimmed = content.trim();
     if (!trimmed) return;
+
+    setError(null);
 
     const userMessage: ChatMessage = {
       id: randomId(),
@@ -32,14 +35,16 @@ export function useChat() {
       if (!abortRef.current) {
         setMessages((prev) => [...prev, message]);
       }
-    } catch {
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Something went wrong.";
+      setError(errorMessage);
       setMessages((prev) => [
         ...prev,
         {
           id: randomId(),
           role: "assistant",
-          content:
-            "Something went wrong while generating a response. Please try again.",
+          content: errorMessage,
           createdAt: Date.now(),
         },
       ]);
@@ -50,12 +55,8 @@ export function useChat() {
 
   const clearChat = useCallback(() => {
     setMessages([]);
+    setError(null);
   }, []);
 
-  return {
-    messages,
-    isTyping,
-    sendMessage,
-    clearChat,
-  };
+  return { messages, isTyping, error, sendMessage, clearChat };
 }

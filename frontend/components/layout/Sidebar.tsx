@@ -27,10 +27,11 @@ export function Sidebar({ isOpen, onClose, onNewChat, onOpenSettings }: SidebarP
   const [query, setQuery] = useState("");
   const {
   conversations,
-  newConversation,
+  activeId,
+  createConversation,
   deleteConversation,
+  selectConversation,
 } = useConversations();
-  const [activeId, setActiveId] = useState<string | null>(null);
 
   const filtered = conversations.filter((c) =>
     c.title.toLowerCase().includes(query.toLowerCase())
@@ -82,7 +83,7 @@ export function Sidebar({ isOpen, onClose, onNewChat, onOpenSettings }: SidebarP
         <div className="px-3">
           <button
             onClick={() => {
-              newConversation();
+              createConversation();
               onNewChat();
             }}
             className={cn(
@@ -129,7 +130,7 @@ export function Sidebar({ isOpen, onClose, onNewChat, onOpenSettings }: SidebarP
             {filtered.map((chat) => (
               <button
                 key={chat.id}
-                onClick={() => setActiveId(chat.id)}
+                onClick={() => selectConversation(chat.id)}
                 className={cn(
                   "group relative flex w-full items-start gap-2.5 rounded-lg px-2.5 py-2.5 text-left",
                   "transition-colors hover:bg-white/[0.06]",
