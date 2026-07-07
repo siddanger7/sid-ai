@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Bell, Palette, Settings, User, Volume2, X } from "lucide-react";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/context/AuthContext";
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -40,14 +41,53 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
   );
 }
 
+const SETTINGS_KEY = "sidai-settings";
+
+interface StoredSettings {
+  sounds: boolean;
+  suggestions: boolean;
+  emailNotifs: boolean;
+  pushNotifs: boolean;
+}
+
+function loadSettings(): StoredSettings {
+  if (typeof window === "undefined") {
+    return { sounds: true, suggestions: true, emailNotifs: false, pushNotifs: true };
+  }
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (raw) return JSON.parse(raw) as StoredSettings;
+  } catch { /* ignore */ }
+  return { sounds: true, suggestions: true, emailNotifs: false, pushNotifs: true };
+}
+
+function saveSettings(s: StoredSettings) {
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
+  } catch { /* ignore */ }
+}
+
 export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [tab, setTab] = useState<Tab>("general");
   const { theme, setTheme } = useTheme();
+  const { user, isAuthenticated } = useAuth();
   const darkTheme = theme !== "light";
   const [sounds, setSounds] = useState(true);
   const [suggestions, setSuggestions] = useState(true);
   const [emailNotifs, setEmailNotifs] = useState(false);
   const [pushNotifs, setPushNotifs] = useState(true);
+
+  useEffect(() => {
+    const s = loadSettings();
+    setSounds(s.sounds);
+    setSuggestions(s.suggestions);
+    setEmailNotifs(s.emailNotifs);
+    setPushNotifs(s.pushNotifs);
+  }, [isOpen]);
+
+  useEffect(() => {
+    saveSettings({ sounds, suggestions, emailNotifs, pushNotifs });
+  }, [sounds, suggestions, emailNotifs, pushNotifs]);
 
   return (
     <AnimatePresence>
@@ -137,11 +177,13 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 <div className="space-y-4">
                   <div className="flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg-subtle)] p-4">
                     <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-lg font-semibold text-white">
-                      S
+                      {user ? user.username.charAt(0).toUpperCase() : "?"}
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-[var(--text-secondary)]">Siddiq</p>
-                      <p className="text-xs text-[var(--text-faint)]">Chennai, Tamil Nadu, India</p>
+                      <p className="text-sm font-medium text-[var(--text-secondary)]">
+                        {user?.username ?? (isAuthenticated ? "User" : "Not signed in")}
+                      </p>
+                      <p className="text-xs text-[var(--text-faint)]">{user?.email ?? ""}</p>
                     </div>
                   </div>
                   <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-subtle)] p-3.5">
