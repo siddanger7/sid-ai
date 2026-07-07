@@ -112,13 +112,16 @@ def generate_response(
 
     payload = build_payload(messages, stream=False, max_tokens=max_tokens, temperature=temperature, top_p=top_p)
     try:
-        with httpx.Client(timeout=httpx.Timeout(300.0)) as client:
+        with httpx.Client(timeout=httpx.Timeout(60.0, connect=10.0)) as client:
             resp = client.post(_llm_url(), json=payload, headers=_llm_headers())
             resp.raise_for_status()
             data = resp.json()
             text = data["choices"][0]["message"]["content"].strip()
             _store_cache(messages, text, max_tokens=max_tokens, temperature=temperature, top_p=top_p)
             return text
+    except httpx.HTTPStatusError as e:
+        logger.error("LLM returned %s: %s", e.response.status_code, e.response.text[:500])
+        raise RuntimeError(f"LLM provider returned status {e.response.status_code}")
     except Exception as e:
         logger.exception("LLM call failed (%s)", LLM_PROVIDER)
         raise
@@ -136,8 +139,15 @@ async def generate_response_stream(
 ) -> AsyncGenerator[str, None]:
     payload = build_payload(messages, stream=True, max_tokens=max_tokens, temperature=temperature, top_p=top_p)
     try:
-        async with httpx.AsyncClient(timeout=httpx.Timeout(300.0)) as client:
+        async with httpx.AsyncClient(timeout=httpx.Timeout(120.0, connect=10.0)) as client:
             async with client.stream("POST", _llm_url(), json=payload, headers=_llm_headers()) as resp:
+                if not resp.is_success:
+                    error_body = await resp.aread()
+                    msg = f"LLM error: {resp.status_code} — {error_body.decode('utf-8', errors='replace')[:300]}"
+                    logger.error(msg)
+                    yield msg
+                    return
+
                 buffer = ""
                 async for raw in resp.aiter_bytes():
                     buffer += raw.decode("utf-8", errors="replace")
@@ -152,7 +162,7 @@ async def generate_response_stream(
                             yield line
     except Exception as e:
         logger.exception("LLM streaming failed (%s)", LLM_PROVIDER)
-        yield f"\n\n[Error: {e}]"
+        yield f"[Error: {e}]"
 
 
 # ---------------------------------------------------------------------------
