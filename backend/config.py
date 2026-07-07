@@ -6,7 +6,7 @@ ACCESS_TOKEN_EXPIRE_HOURS: int = int(os.environ.get("JWT_EXPIRE_HOURS", "72"))
 
 OPENAI_API_KEY: str = os.environ.get("OPENAI_API_KEY", "")
 OPENAI_BASE_URL: str = os.environ.get("OPENAI_BASE_URL", "https://api.groq.com/openai/v1")
-OPENAI_MODEL: str = os.environ.get("OPENAI_MODEL", "llama3-8b-8192")
+OPENAI_MODEL: str = os.environ.get("OPENAI_MODEL", "llama-3.1-8b-instant")
 
 # Auto-detect provider: if OPENAI_API_KEY is set, use OpenAI-compatible API
 # Otherwise fall back to local llama-server
