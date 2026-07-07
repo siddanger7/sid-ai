@@ -6,7 +6,7 @@ from typing import AsyncGenerator
 
 import httpx
 
-from config import LLM_PROVIDER, LLAMA_SERVER_URL, OPENAI_API_KEY, OPENAI_BASE_URL, OPENAI_MODEL
+from config import OPENAI_API_KEY, OPENAI_BASE_URL, OPENAI_MODEL, LLAMA_SERVER_URL
 from rag import build_rag_context
 
 logger = logging.getLogger("SID.AI")
@@ -45,23 +45,27 @@ def _store_cache(messages: list[dict], response: str, **params) -> None:
 
 
 # ---------------------------------------------------------------------------
-#  Endpoint resolution
+#  Endpoint resolution (auto-detect based on OPENAI_API_KEY)
 # ---------------------------------------------------------------------------
 
+def _using_openai() -> bool:
+    return bool(OPENAI_API_KEY)
+
+
 def _llm_headers() -> dict:
-    if LLM_PROVIDER == "openai":
+    if _using_openai():
         return {"Authorization": f"Bearer {OPENAI_API_KEY}", "Content-Type": "application/json"}
     return {"Content-Type": "application/json"}
 
 
 def _llm_url() -> str:
-    if LLM_PROVIDER == "openai":
+    if _using_openai():
         return f"{OPENAI_BASE_URL.rstrip('/')}/chat/completions"
     return LLAMA_SERVER_URL
 
 
 def _add_provider_fields(payload: dict) -> dict:
-    if LLM_PROVIDER == "openai":
+    if _using_openai():
         payload["model"] = OPENAI_MODEL
     return payload
 
@@ -123,7 +127,7 @@ def generate_response(
         logger.error("LLM returned %s: %s", e.response.status_code, e.response.text[:500])
         raise RuntimeError(f"LLM provider returned status {e.response.status_code}")
     except Exception as e:
-        logger.exception("LLM call failed (%s)", LLM_PROVIDER)
+        logger.exception("LLM call failed")
         raise
 
 
@@ -161,7 +165,7 @@ async def generate_response_stream(
                         if line:
                             yield line
     except Exception as e:
-        logger.exception("LLM streaming failed (%s)", LLM_PROVIDER)
+        logger.exception("LLM streaming failed")
         yield f"[Error: {e}]"
 
 
