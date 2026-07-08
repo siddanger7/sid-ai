@@ -1,7 +1,7 @@
 ======================================================================
 SID.AI — DEPLOYMENT PROGRESS LOG
 ======================================================================
-Last Updated: 2026-07-08
+Last Updated: 2026-07-08 (in progress)
 
 This file documents every change, decision, and step taken during
 the SID.AI project lifecycle. Update it each time you make a change
@@ -185,7 +185,12 @@ STEP 8: [✅] Verify chat works end-to-end
 STEP 9: [✅] Upload & RAG fix
          - PDF upload works (pdfminer.six)
          - In-memory keyword RAG fallback (ChromaDB not needed)
-STEP 10: [  ] (Future) Deploy fine-tuned Qwen model on GPU
+STEP 10: [  ] Deploy fine-tuned Qwen model on Oracle Cloud Free Tier
+         - Model uploaded to HF: siddanger/sid-ai-model (private)
+         - HF Space failed: Gradio/Docker Spaces require PRO subscription
+         - Next: Create Oracle Cloud VM (4 ARM CPU, 24GB RAM, free forever)
+           → Install llama-server → point LLAMA_SERVER_URL to it
+         Status: ⏸️ PAUSED — waiting for user to complete Oracle signup
 
 
 ======================================================================
@@ -343,6 +348,32 @@ RAG (document upload) on free tier:
 - Upload endpoint still accepts files but skips indexing
 - To enable RAG: upgrade Render plan or add ChromaDB as a separate
   managed service
+
+======================================================================
+PHASE 7: CUSTOM MODEL DEPLOYMENT (Oracle Cloud Free Tier)
+======================================================================
+
+[2026-07-08] Attempting to deploy finetuned Qwen GGUF on free hosting
+
+Goal: Replace Groq API (llama-3.1-8b-instant) with user's own
+finetuned model (outputs/sid-ai-q4_k_m.gguf) for inference.
+
+Attempted: Hugging Face Spaces
+- Created model repo: siddanger/sid-ai-model (private, 1.93 GB GGUF)
+- Tried to create Space with Docker SDK → requires PRO ($9/mo)
+- Tried Gradio SDK (public) → also requires PRO (policy change)
+Result: ❌ HF Spaces no longer free for non-static apps
+
+Current plan: Oracle Cloud Free Tier
+- A1.Flex instance: 4 ARM CPUs, 24 GB RAM, up to 200 GB storage
+- Install llama.cpp → build llama-server → run as systemd service
+- Expose via public IPv4 → point LLAMA_SERVER_URL
+- Keep Render backend, just change LLAMA_SERVER_URL env var
+- Backend code change needed: always pass "model" field in payload
+  (llama-cpp-python server expects it)
+
+Status: ⏸️ PAUSED — waiting for user to sign up at Oracle Cloud
+         https://signup.cloud.oracle.com
 
 ======================================================================
 END OF PROGRESS LOG
