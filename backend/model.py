@@ -1,6 +1,9 @@
 from __future__ import annotations
+import asyncio
 import json
 import logging
+import queue
+import threading
 from collections import OrderedDict
 from typing import AsyncGenerator
 
@@ -132,8 +135,56 @@ def generate_response(
 
 
 # ---------------------------------------------------------------------------
-#  Async streaming inference
+#  Streaming inference (sync httpx in a thread — more reliable)
 # ---------------------------------------------------------------------------
+
+def _parse_sse_token(line: str) -> str | None:
+    """Parse a single SSE data line, return token, '[DONE]', or None."""
+    if not line.startswith("data: "):
+        return None
+    data = line[6:]
+    if data == "[DONE]":
+        return "[DONE]"
+    try:
+        parsed = json.loads(data)
+        token = parsed.get("choices", [{}])[0].get("delta", {}).get("content", "")
+        return token if token else None
+    except (json.JSONDecodeError, IndexError, KeyError):
+        return None
+
+
+def _stream_worker(
+    messages: list[dict],
+    max_tokens: int,
+    temperature: float,
+    top_p: float,
+    q: queue.Queue,
+) -> None:
+    """Run in a background thread, put tokens into the queue."""
+    payload = build_payload(messages, stream=True, max_tokens=max_tokens, temperature=temperature, top_p=top_p)
+    try:
+        with httpx.Client(timeout=httpx.Timeout(120.0, connect=10.0)) as client:
+            with client.stream("POST", _llm_url(), json=payload, headers=_llm_headers()) as resp:
+                if not resp.is_success:
+                    error_body = resp.read()
+                    msg = f"LLM error: {resp.status_code} — {error_body.decode('utf-8', errors='replace')[:300]}"
+                    logger.error(msg)
+                    q.put(("error", msg))
+                    return
+
+                for raw in resp.iter_lines():
+                    line = raw.decode() if isinstance(raw, bytes) else raw
+                    token = _parse_sse_token(line.strip())
+                    if token == "[DONE]":
+                        q.put(("done", None))
+                        return
+                    if token:
+                        q.put(("token", token))
+        q.put(("done", None))
+    except Exception as e:
+        logger.exception("LLM streaming worker failed")
+        q.put(("error", str(e)))
+
 
 async def generate_response_stream(
     messages: list[dict],
@@ -141,52 +192,21 @@ async def generate_response_stream(
     temperature: float = 0.7,
     top_p: float = 0.9,
 ) -> AsyncGenerator[str, None]:
-    payload = build_payload(messages, stream=True, max_tokens=max_tokens, temperature=temperature, top_p=top_p)
-    try:
-        async with httpx.AsyncClient(timeout=httpx.Timeout(120.0, connect=10.0)) as client:
-            async with client.stream("POST", _llm_url(), json=payload, headers=_llm_headers()) as resp:
-                if not resp.is_success:
-                    error_body = await resp.aread()
-                    msg = f"LLM error: {resp.status_code} — {error_body.decode('utf-8', errors='replace')[:300]}"
-                    logger.error(msg)
-                    yield msg
-                    return
+    q: queue.Queue = queue.Queue()
+    t = threading.Thread(
+        target=_stream_worker,
+        args=(messages, max_tokens, temperature, top_p, q),
+        daemon=True,
+    )
+    t.start()
 
-                buffer = ""
-                async for raw in resp.aiter_bytes():
-                    buffer += raw.decode("utf-8", errors="replace")
-                    while True:
-                        line, rest = _parse_sse_line(buffer)
-                        if line is None:
-                            break
-                        buffer = rest
-                        if line == "[DONE]":
-                            return
-                        if line:
-                            yield line
-    except Exception as e:
-        logger.exception("LLM streaming failed")
-        yield f"[Error: {e}]"
-
-
-# ---------------------------------------------------------------------------
-#  SSE line parser
-# ---------------------------------------------------------------------------
-
-def _parse_sse_line(buffer: str) -> tuple[str | None, str]:
-    idx = buffer.find("\n")
-    if idx == -1:
-        return None, buffer
-    line = buffer[:idx].strip()
-    rest = buffer[idx + 1:]
-    if line.startswith("data: "):
-        data = line[6:]
-        if data == "[DONE]":
-            return "[DONE]", rest
-        try:
-            parsed = json.loads(data)
-            token = parsed.get("choices", [{}])[0].get("delta", {}).get("content", "")
-            return token, rest
-        except (json.JSONDecodeError, IndexError, KeyError):
-            pass
-    return None, rest
+    loop = asyncio.get_event_loop()
+    while True:
+        kind, value = await loop.run_in_executor(None, q.get)
+        if kind == "done":
+            break
+        if kind == "error":
+            yield f"[Error: {value}]"
+            return
+        if kind == "token":
+            yield value

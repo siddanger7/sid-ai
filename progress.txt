@@ -178,8 +178,8 @@ STEP 4: [✅] Deploy frontend on Vercel
 STEP 5: [✅] Update CORS origins on Render with actual Vercel URL
          CORS_ORIGINS: https://sid-ai-gamma.vercel.app,https://sidai-backend.onrender.com
 STEP 6: [✅] Deploy Google OAuth code changes
-STEP 7: [  ] Push + redeploy both services
-STEP 8: [  ] Verify chat works end-to-end
+STEP 7: [✅] Push + redeploy both services (multiple iterations)
+STEP 8: [  ] Verify Google sign-in works
 STEP 9: [  ] (Future) Deploy fine-tuned Qwen model on GPU
 
 
@@ -198,7 +198,7 @@ Removed email/password login/signup entirely:
 
 Backend changes:
 --- backend/prod-requirements.txt ---
-  Added: google-auth>=2.0,<3.0
+  Added: google-auth>=2.0,<3.0, requests, cachetools
 
 --- backend/config.py ---
   Added: GOOGLE_CLIENT_ID config var
@@ -210,6 +210,7 @@ Backend changes:
     - Returns JWT token
   Fixed: login endpoint checks empty password_hash
   Added: logging import
+  Added: Better error logging (returns error detail)
 
 Frontend changes:
 --- frontend/services/auth.ts ---
@@ -222,7 +223,7 @@ Frontend changes:
 
 --- frontend/components/auth/LoginModal.tsx ---
   Complete rewrite:
-  - Dynamically loads Google GSI script
+  - Dynamically loads Google GSI script (no next/script)
   - Shows Google Sign-In button only
   - No email/password fields
   - No tabs (login/signup removed)
@@ -243,9 +244,16 @@ Frontend changes:
 --- .env.example ---
   Added: GOOGLE_CLIENT_ID documentation
 
+--- frontend/vercel.json ---
+  Fixed: JSON syntax error (extra brace)
+
 Google Client ID: 122309050269-9hroq2jnfueg1v889gvgnaurnsfueimk.apps.googleusercontent.com
 
-Status: ✅ DONE (pending push + redeploy)
+Known issue: Initial deploy returned 500 on /auth/google
+  → Fixed: added requests + cachetools deps, improved error logging
+  → Requires: Render manual deploy, Vercel redeploy
+
+Status: ✅ DONE (pending final verification)
 
 
 ======================================================================
