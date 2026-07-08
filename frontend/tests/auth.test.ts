@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { login, signup, fetchMe } from "@/services/auth";
+import { googleLogin, fetchMe } from "@/services/auth";
 
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
@@ -21,54 +21,33 @@ function errResponse(status: number, detail: string) {
   } as Response;
 }
 
-describe("login", () => {
+describe("googleLogin", () => {
   it("returns AuthResponse on success", async () => {
     const data = {
       access_token: "jwt",
       token_type: "bearer",
-      user: { id: "1", email: "a@b.com", username: "a", created_at: "now" },
+      user: { id: "1", email: "a@gmail.com", username: "a", created_at: "now" },
     };
     mockFetch.mockResolvedValue(okResponse(data));
 
-    const result = await login("a@b.com", "pass123");
+    const result = await googleLogin("google-id-token");
     expect(result.access_token).toBe("jwt");
-    expect(result.user.email).toBe("a@b.com");
+    expect(result.user.email).toBe("a@gmail.com");
   });
 
   it("throws on failure", async () => {
-    mockFetch.mockResolvedValue(errResponse(401, "Invalid credentials"));
-    await expect(login("a@b.com", "wrong")).rejects.toThrow("Invalid credentials");
-  });
-});
-
-describe("signup", () => {
-  it("returns AuthResponse on success", async () => {
-    const data = {
-      access_token: "jwt",
-      token_type: "bearer",
-      user: { id: "2", email: "new@b.com", username: "newuser", created_at: "now" },
-    };
-    mockFetch.mockResolvedValue(okResponse(data));
-
-    const result = await signup("new@b.com", "pass123", "newuser");
-    expect(result.access_token).toBe("jwt");
-  });
-
-  it("throws error with detail from response body", async () => {
-    mockFetch.mockResolvedValue(errResponse(400, "Email already registered"));
-    await expect(signup("dup@b.com", "pass123", "dup")).rejects.toThrow(
-      "Email already registered"
-    );
+    mockFetch.mockResolvedValue(errResponse(401, "Invalid Google token"));
+    await expect(googleLogin("bad-token")).rejects.toThrow("Invalid Google token");
   });
 });
 
 describe("fetchMe", () => {
   it("returns user when token is valid", async () => {
-    const user = { id: "1", email: "a@b.com", username: "a", created_at: "now" };
+    const user = { id: "1", email: "a@gmail.com", username: "a", created_at: "now" };
     mockFetch.mockResolvedValue(okResponse(user));
 
     const result = await fetchMe("valid-jwt");
-    expect(result.email).toBe("a@b.com");
+    expect(result.email).toBe("a@gmail.com");
   });
 
   it("throws when token is invalid", async () => {

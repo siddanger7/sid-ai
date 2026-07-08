@@ -7,15 +7,14 @@ import {
   useEffect,
   useState,
 } from "react";
-import { User, login as apiLogin, signup as apiSignup, fetchMe } from "@/services/auth";
+import { User, googleLogin as apiGoogleLogin, fetchMe } from "@/services/auth";
 
 interface AuthState {
   user: User | null;
   token: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  signup: (email: string, password: string, username: string) => Promise<void>;
+  googleLogin: (idToken: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -45,22 +44,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const login = useCallback(async (email: string, password: string) => {
-    const res = await apiLogin(email, password);
+  const googleLogin = useCallback(async (idToken: string) => {
+    const res = await apiGoogleLogin(idToken);
     localStorage.setItem(TOKEN_KEY, res.access_token);
     setToken(res.access_token);
     setUser(res.user);
   }, []);
-
-  const signup = useCallback(
-    async (email: string, password: string, username: string) => {
-      const res = await apiSignup(email, password, username);
-      localStorage.setItem(TOKEN_KEY, res.access_token);
-      setToken(res.access_token);
-      setUser(res.user);
-    },
-    []
-  );
 
   const logout = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY);
@@ -75,8 +64,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         token,
         isLoading,
         isAuthenticated: !!token && !!user,
-        login,
-        signup,
+        googleLogin,
         logout,
       }}
     >

@@ -1,17 +1,23 @@
+# ──────────────────────────────────────────────────────────
+# SID.AI — Render Blueprint
+# Deploy this file from the Render dashboard:
+#   New → Blueprint → Connect your GitHub repo
+# ──────────────────────────────────────────────────────────
+
 services:
   - type: web
     name: sidai-backend
     runtime: python
-    repo: https://github.com/siddanger7/sid-ai
     plan: free
     region: oregon
-    buildCommand: cd backend && pip install -r requirements.txt
+    buildCommand: cd backend && pip install --no-cache-dir -r prod-requirements.txt
     startCommand: cd backend && uvicorn app:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
     envVars:
       - key: JWT_SECRET_KEY
         generateValue: true
       - key: CORS_ORIGINS
-        value: https://sidai-frontend.onrender.com
+        value: https://sid-ai-gamma.vercel.app,https://sidai-backend.onrender.com
       - key: LOG_LEVEL
         value: INFO
       - key: DATABASE_URL
@@ -22,16 +28,5 @@ services:
         value: https://api.groq.com/openai/v1
       - key: OPENAI_MODEL
         value: llama-3.1-8b-instant
-    healthCheckPath: /health
-
-  - type: web
-    name: sidai-frontend
-    runtime: node
-    repo: https://github.com/siddanger7/sid-ai
-    plan: free
-    region: oregon
-    buildCommand: cd frontend && npm install && npm run build
-    startCommand: cd frontend && npm start
-    envVars:
-      - key: NEXT_PUBLIC_API_URL
-        value: https://sidai-backend.onrender.com
+      - key: GOOGLE_CLIENT_ID
+        value: 122309050269-9hroq2jnfueg1v889gvgnaurnsfueimk.apps.googleusercontent.com

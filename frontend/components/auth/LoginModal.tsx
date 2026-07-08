@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Loader2, Sparkles } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { X, Sparkles } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+
+const GOOGLE_CLIENT_ID = "122309050269-9hroq2jnfueg1v889gvgnaurnsfueimk.apps.googleusercontent.com";
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -12,39 +13,60 @@ interface LoginModalProps {
   closable?: boolean;
 }
 
-type Tab = "login" | "signup";
-
 export function LoginModal({ isOpen, onClose, closable = true }: LoginModalProps) {
-  const { login, signup } = useAuth();
-  const [tab, setTab] = useState<Tab>("login");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [username, setUsername] = useState("");
+  const { googleLogin } = useAuth();
   const [error, setError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
+  const btnRef = useRef<HTMLDivElement>(null);
+  const inited = useRef(false);
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setSubmitting(true);
-    try {
-      if (tab === "login") {
-        await login(email, password);
-      } else {
-        await signup(email, password, username);
+  useEffect(() => {
+    if (!isOpen) return;
+    inited.current = false;
+
+    const loadGSI = () => {
+      if ((window as any).google?.accounts?.id) {
+        initGSI();
+        return;
       }
-      onClose();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-    } finally {
-      setSubmitting(false);
-    }
-  };
+      const s = document.createElement("script");
+      s.src = "https://accounts.google.com/gsi/client";
+      s.async = true;
+      s.defer = true;
+      s.onload = initGSI;
+      document.head.appendChild(s);
+    };
 
-  const switchTab = (t: Tab) => {
-    setTab(t);
-    setError(null);
-  };
+    const initGSI = () => {
+      if (inited.current || !btnRef.current) return;
+      inited.current = true;
+      const gsi = (window as any).google.accounts.id;
+      gsi.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: async (response: any) => {
+          if (response?.credential) {
+            setError(null);
+            try {
+              await googleLogin(response.credential);
+              onClose();
+            } catch (err) {
+              setError(err instanceof Error ? err.message : "Google sign-in failed");
+            }
+          }
+        },
+      });
+      gsi.renderButton(btnRef.current, {
+        type: "standard",
+        theme: "outline",
+        size: "large",
+        text: "signin_with",
+        shape: "rectangular",
+        width: 320,
+      });
+    };
+
+    const t = setTimeout(loadGSI, 100);
+    return () => clearTimeout(t);
+  }, [isOpen, googleLogin, onClose]);
 
   return (
     <AnimatePresence>
@@ -62,7 +84,7 @@ export function LoginModal({ isOpen, onClose, closable = true }: LoginModalProps
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ duration: 0.25 }}
             onClick={(e) => e.stopPropagation()}
-            className="relative w-full max-w-sm rounded-2xl border border-[var(--border)] bg-[var(--bg-elevated)] p-6 shadow-2xl"
+            className="relative w-full max-w-sm rounded-2xl border border-[var(--border)] bg-[var(--bg-elevated)] p-8 shadow-2xl text-center"
           >
             {closable && (
               <button
@@ -73,99 +95,26 @@ export function LoginModal({ isOpen, onClose, closable = true }: LoginModalProps
               </button>
             )}
 
-            <div className="mb-6 flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-purple-600">
-                <Sparkles size={16} className="text-white" />
+            <div className="mb-2 flex justify-center">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-purple-600">
+                <Sparkles size={24} className="text-white" />
               </div>
-              <span className="text-lg font-semibold text-[var(--text-primary)]">SID.AI</span>
             </div>
 
-            <div className="mb-6 flex rounded-lg bg-[var(--bg-surface)] p-1">
-              {(["login", "signup"] as Tab[]).map((t) => (
-                <button
-                  key={t}
-                  onClick={() => switchTab(t)}
-                  className={cn(
-                    "flex-1 rounded-md px-3 py-2 text-sm font-medium transition-all",
-                    tab === t
-                      ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md"
-                      : "text-[var(--text-dim)] hover:text-[var(--text-primary)]"
-                  )}
-                >
-                  {t === "login" ? "Sign In" : "Sign Up"}
-                </button>
-              ))}
-            </div>
+            <h2 className="mb-1 text-xl font-bold text-[var(--text-primary)]">Welcome to SID.AI</h2>
+            <p className="mb-6 text-sm text-[var(--text-dim)]">Sign in to start chatting</p>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {tab === "signup" && (
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-[var(--text-secondary)]">
-                    Username
-                  </label>
-                  <input
-                    type="text"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    required
-                    className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-input)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none placeholder:text-[var(--text-faint)] focus:border-blue-500/50"
-                    placeholder="Your name"
-                  />
-                </div>
-              )}
+            {error && (
+              <p className="mb-4 rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-400">
+                {error}
+              </p>
+            )}
 
-              <div>
-                <label className="mb-1 block text-xs font-medium text-[var(--text-secondary)]">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-input)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none placeholder:text-[var(--text-faint)] focus:border-blue-500/50"
-                  placeholder="you@example.com"
-                />
-              </div>
+            <div ref={btnRef} className="flex justify-center" />
 
-              <div>
-                <label className="mb-1 block text-xs font-medium text-[var(--text-secondary)]">
-                  Password
-                </label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  minLength={6}
-                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-input)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none placeholder:text-[var(--text-faint)] focus:border-blue-500/50"
-                  placeholder="At least 6 characters"
-                />
-              </div>
-
-              {error && (
-                <p className="rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-400">
-                  {error}
-                </p>
-              )}
-
-              <button
-                type="submit"
-                disabled={submitting}
-                className="w-full rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 py-2.5 text-sm font-semibold text-white shadow-lg transition-all hover:shadow-xl active:scale-[0.98] disabled:opacity-60"
-              >
-                {submitting ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <Loader2 size={15} className="animate-spin" />
-                    {tab === "login" ? "Signing in…" : "Creating account…"}
-                  </span>
-                ) : tab === "login" ? (
-                  "Sign In"
-                ) : (
-                  "Create Account"
-                )}
-              </button>
-            </form>
+            <p className="mt-4 text-[10px] text-[var(--text-faint)]">
+              By signing in, you agree to our Terms of Service
+            </p>
           </motion.div>
         </motion.div>
       )}

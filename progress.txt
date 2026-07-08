@@ -1,0 +1,292 @@
+======================================================================
+SID.AI — DEPLOYMENT PROGRESS LOG
+======================================================================
+Last Updated: 2026-07-08
+
+This file documents every change, decision, and step taken during
+the SID.AI project lifecycle. Update it each time you make a change
+or complete a step — coding, deployment, config, or otherwise.
+======================================================================
+
+
+PROJECT OVERVIEW
+======================================================================
+SID.AI — Full-stack AI chat application with auth, conversation
+history, RAG (document upload), web search, and streaming chat.
+
+Tech Stack:
+  Frontend: Next.js 16, React 19, TypeScript, Tailwind CSS v4,
+            framer-motion, shadcn/ui
+  Backend:  Python 3.12, FastAPI, SQLAlchemy (async), SQLite
+  Model:    Fine-tuned Qwen2.5-3B-Instruct → GGUF (Q4_K_M, 1.93 GB)
+  RAG:      ChromaDB + all-MiniLM-L6-v2 embeddings
+  Auth:     JWT (python-jose) + bcrypt
+  Search:   Google Custom Search (optional)
+
+Architecture:
+  ┌──────────┐      ┌───────────┐      ┌───────────────┐
+  │ Frontend │ ───> │  Backend   │ ───> │  llama-server │
+  │ Next.js  │ SSE  │  FastAPI   │ HTTP │  (GGUF model) │
+  │ :3000    │ <─── │  :8888     │ <─── │  :8081        │
+  └──────────┘      └─────┬─────┘      └───────────────┘
+                          │
+                ┌─────────┼─────────┐
+                ▼         ▼         ▼
+            SQLite    ChromaDB   Google CSE
+            (Auth &   (RAG       (Web
+             Chat     vectors)   Search)
+             History)
+
+Environment Variables:
+  JWT_SECRET_KEY   — JWT signing secret (auto-generated on Render)
+  OPENAI_API_KEY   — Groq/OpenAI API key (required for cloud mode)
+  OPENAI_BASE_URL  — https://api.groq.com/openai/v1
+  OPENAI_MODEL     — llama-3.1-8b-instant
+  DATABASE_URL     — sqlite+aiosqlite:////tmp/sidai.db (Render)
+  CORS_ORIGINS     — Comma-separated allowed origins
+  NEXT_PUBLIC_API_URL — Backend URL for frontend
+
+
+======================================================================
+PHASE 1: INITIAL ANALYSIS
+======================================================================
+
+[2026-07-08] Initial project inspection completed.
+
+Key findings:
+- Project has FULL-STACK structure with working frontend and backend
+- Model file: outputs/sid-ai-q4_k_m.gguf (1,929,902,432 bytes = 1.93 GB)
+- The backend already supports DUAL MODE inference:
+  * If OPENAI_API_KEY is set → uses OpenAI-compatible API (Groq, etc.)
+  * If empty → uses local llama-server with GGUF model
+- .env.example already configured for Groq free API
+- Existing deployment configs: render.yaml, fly.toml, railway.json
+- CORS and middleware already implemented
+
+Critical realization: The GGUF model (1.93 GB) CANNOT be hosted on
+any free tier. Must use cloud inference API for free deployment.
+
+
+======================================================================
+PHASE 2: DEPLOYMENT PLAN
+======================================================================
+
+[2026-07-08] Chosen deployment architecture:
+
+  ┌──────────────┐      ┌──────────────┐      ┌──────────────────┐
+  │  Vercel      │ ───> │  Render      │ ───> │  Groq API (free) │
+  │  Frontend    │ HTTPS │  Backend     │ HTTP │  llama-3.1-8b    │
+  │  (Next.js)   │ <─── │  (FastAPI)   │ <─── │  (no model req)  │
+  └──────────────┘      └──────────────┘      └──────────────────┘
+                               │
+                        ┌──────┴──────┐
+                        │  SQLite     │
+                        │ (ephemeral) │
+                        └─────────────┘
+
+  Total cost: $0/month
+  Backend: Render free tier (Python)
+  Frontend: Vercel free tier (Next.js)
+  Inference: Groq free API (30 tokens/min)
+
+
+======================================================================
+PHASE 3: CODE CHANGES
+======================================================================
+
+All changes made in C:\Users\sidda\Documents\AI-Agent\
+
+--- File: render.yaml ---
+What: Rewrote Render deployment config
+Changes:
+  - Removed hardcoded repo URL (connect from Dashboard instead)
+  - Removed frontend service (using Vercel instead)
+  - Changed build command to use prod-requirements.txt (lighter deps)
+  - Updated CORS_ORIGINS for Vercel + Render URLs
+  - Added descriptive comments at top
+Status: ✅ DONE
+
+--- File: frontend/vercel.json (NEW) ---
+What: Created Vercel deployment configuration
+Purpose: Tells Vercel the framework, build command, and env vars
+Status: ✅ DONE
+
+--- File: frontend/next.config.ts ---
+What: Removed standalone output setting
+Why: Vercel handles Next.js natively, doesn't need standalone mode
+Status: ✅ DONE
+
+--- File: backend/rag.py ---
+What: Refactored RAG initialization with graceful degradation
+Changes:
+  - Made ChromaDB init lazy (called on first use, not import)
+  - Added _rag_disabled flag — if ChromaDB fails, RAG disables silently
+  - All external functions check _rag_disabled before calling ChromaDB
+  - Chat continues working even if ChromaDB/PyTorch is missing
+Status: ✅ DONE
+
+--- File: backend/prod-requirements.txt (NEW) ---
+What: Minimal production dependencies
+Contents: Excludes chromadb (pulls PyTorch ~2GB) and pymupdf (heavy PDF lib)
+Why: Render free tier has 15-min build limit; full deps would timeout
+Note: RAG and PDF upload gracefully fall back when these are absent
+Status: ✅ DONE
+
+--- File: backend/config.py ---
+What: CORS origin parsing improvement
+Changes:
+  - Added whitespace trimming for each origin
+  - Filters out empty strings from the comma-separated list
+Before: "a.com, b.com".split(",") → ["a.com", " b.com"] ❌
+After:  "a.com, b.com" → ["a.com", "b.com"] ✅
+Status: ✅ DONE
+
+--- File: backend/middleware.py ---
+What: Rate limiter IP detection for proxy environments
+Changes:
+  - Added X-Forwarded-For header support
+  - Render, Cloudflare, and other proxies use this header
+  - Falls back to request.client.host if header is absent
+Status: ✅ DONE
+
+--- File: backend/upload.py ---
+What: Minor logging improvement
+Changes:
+  - Added log message when file has no extractable text
+Status: ✅ DONE
+
+--- File: .env.example ---
+What: Updated documentation and comments
+Changes:
+  - Added clearer structure with visual separators
+  - Added instructions for Render-specific DATABASE_URL
+  - Highlighted where to get Groq free API key
+Status: ✅ DONE
+
+
+======================================================================
+PHASE 4: DEPLOYMENT STEPS
+======================================================================
+
+STEP 1: [✅] Create GitHub repo / push changes
+STEP 2: [✅] Get Groq API key (https://console.groq.com)
+STEP 3: [✅] Deploy backend on Render (via Blueprint)
+         URL: https://sidai-backend.onrender.com
+         /health verification: {"status": "ok"}
+STEP 4: [✅] Deploy frontend on Vercel
+         URL: https://sid-ai-gamma.vercel.app
+STEP 5: [✅] Update CORS origins on Render with actual Vercel URL
+         CORS_ORIGINS: https://sid-ai-gamma.vercel.app,https://sidai-backend.onrender.com
+STEP 6: [✅] Deploy Google OAuth code changes
+STEP 7: [  ] Push + redeploy both services
+STEP 8: [  ] Verify chat works end-to-end
+STEP 9: [  ] (Future) Deploy fine-tuned Qwen model on GPU
+
+
+======================================================================
+PHASE 5: GOOGLE OAUTH IMPLEMENTATION
+======================================================================
+
+[2026-07-08] Implemented Google Sign-In (Google-only auth)
+
+Removed email/password login/signup entirely:
+- Removed: signup(), login() from frontend services/auth.ts
+- Removed: login, signup methods from AuthContext
+- Removed: email/password form fields from LoginModal
+- Removed: Login/Signup tabs
+- Rewrote: LoginModal as Google-only sign-in
+
+Backend changes:
+--- backend/prod-requirements.txt ---
+  Added: google-auth>=2.0,<3.0
+
+--- backend/config.py ---
+  Added: GOOGLE_CLIENT_ID config var
+
+--- backend/auth.py ---
+  Added: POST /auth/google endpoint
+    - Verifies Google ID token via google-auth library
+    - Creates user by email if new
+    - Returns JWT token
+  Fixed: login endpoint checks empty password_hash
+  Added: logging import
+
+Frontend changes:
+--- frontend/services/auth.ts ---
+  Removed: signup(), login() functions
+  Kept: googleLogin(idToken), fetchMe()
+
+--- frontend/context/AuthContext.tsx ---
+  Removed: login, signup methods
+  Kept: googleLogin, logout, isAuthenticated, isLoading
+
+--- frontend/components/auth/LoginModal.tsx ---
+  Complete rewrite:
+  - Dynamically loads Google GSI script
+  - Shows Google Sign-In button only
+  - No email/password fields
+  - No tabs (login/signup removed)
+  - Clean welcome message
+
+--- frontend/app/layout.tsx ---
+  Removed: next/script for Google GSI (loaded dynamically now)
+
+--- frontend/tests/auth.test.ts ---
+  Updated: Tests only googleLogin + fetchMe
+
+--- frontend/tests/components/LoginModal.test.tsx ---
+  Updated: Tests only render/not-render states
+
+--- render.yaml ---
+  Added: GOOGLE_CLIENT_ID env var
+
+--- .env.example ---
+  Added: GOOGLE_CLIENT_ID documentation
+
+Google Client ID: 122309050269-9hroq2jnfueg1v889gvgnaurnsfueimk.apps.googleusercontent.com
+
+Status: ✅ DONE (pending push + redeploy)
+
+
+======================================================================
+NOTES & DECISIONS
+======================================================================
+
+Why not use the GGUF model for free?
+- Model file is 1.93 GB — exceeds ALL free tier limits
+- Render free: 512 MB RAM, limited disk
+- Railway free: ~512 MB RAM
+- Fly.io free: 256 MB RAM, 1 GB disk
+- Vercel: serverless functions, 1 GB ephemeral
+- Even Hugging Face Spaces CPU (16 GB) would be too slow for chat
+
+Why Groq instead of other free APIs?
+- Already configured in .env.example as default
+- Free tier: 30 requests/min, 6000 tokens/min
+- OpenAI-compatible — no code changes needed
+- Very fast inference (LPU hardware)
+- Alternatives: OpenRouter (free tier available), Google Gemini API
+
+Why Vercel for frontend instead of Render?
+- Vercel is optimized for Next.js (automatic ISR, edge functions)
+- No cold starts (Render free tier sleeps after inactivity)
+- Faster global CDN
+- Better DX with automatic preview deployments
+
+Why SQLite instead of PostgreSQL?
+- App already built with SQLite (aiosqlite)
+- Render's /tmp directory is ephemeral but lasts while service runs
+- For a demo/ChatGPT-like experience, this is acceptable
+- To persist data: upgrade to Render's paid tier with persistent disk
+  or switch to PostgreSQL (Render offers free 1 GB PostgreSQL)
+
+RAG (document upload) on free tier:
+- ChromaDB requires PyTorch (~2 GB install) — too heavy for Render free
+- RAG is gracefully disabled when ChromaDB is unavailable
+- Upload endpoint still accepts files but skips indexing
+- To enable RAG: upgrade Render plan or add ChromaDB as a separate
+  managed service
+
+======================================================================
+END OF PROGRESS LOG
+======================================================================

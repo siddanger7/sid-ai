@@ -1,3 +1,4 @@
+import logging
 import uuid
 from datetime import datetime, timedelta, timezone
 
@@ -8,7 +9,7 @@ from pydantic import BaseModel, EmailStr
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_HOURS
+from config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_HOURS, GOOGLE_CLIENT_ID
 from database import get_session, User
 from dependencies import get_current_user
 
@@ -24,6 +25,10 @@ class SignupRequest(BaseModel):
 class LoginRequest(BaseModel):
     email: str
     password: str
+
+
+class GoogleLoginRequest(BaseModel):
+    id_token: str
 
 
 class UserResponse(BaseModel):
@@ -94,11 +99,55 @@ async def signup(req: SignupRequest, session: AsyncSession = Depends(get_session
 async def login(req: LoginRequest, session: AsyncSession = Depends(get_session)):
     result = await session.execute(select(User).where(User.email == req.email))
     user = result.scalar_one_or_none()
-    if not user or not verify_password(req.password, user.password_hash):
+    if not user or not user.password_hash or not verify_password(req.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
     token = create_access_token(user.id)
     return TokenResponse(access_token=token, user=UserResponse.from_orm(user))
+
+
+@router.post("/google", response_model=TokenResponse)
+async def google_login(req: GoogleLoginRequest, session: AsyncSession = Depends(get_session)):
+    if not GOOGLE_CLIENT_ID:
+        raise HTTPException(status_code=501, detail="Google sign-in is not configured")
+
+    try:
+        from google.oauth2 import id_token as google_id_token
+        from google.auth.transport import requests as google_requests
+
+        id_info = google_id_token.verify_oauth2_token(
+            req.id_token,
+            google_requests.Request(),
+            GOOGLE_CLIENT_ID,
+        )
+
+        email = id_info.get("email")
+        if not email:
+            raise HTTPException(status_code=400, detail="Google account has no email")
+
+        result = await session.execute(select(User).where(User.email == email))
+        user = result.scalar_one_or_none()
+
+        if not user:
+            user = User(
+                id=uuid.uuid4().hex,
+                email=email,
+                username=id_info.get("name", email.split("@")[0]),
+                password_hash="",
+            )
+            session.add(user)
+            await session.commit()
+            await session.refresh(user)
+
+        token = create_access_token(user.id)
+        return TokenResponse(access_token=token, user=UserResponse.from_orm(user))
+
+    except ValueError as e:
+        raise HTTPException(status_code=401, detail=f"Invalid Google token: {e}")
+    except Exception as e:
+        logger = logging.getLogger("SID.AI")
+        logger.exception("Google login failed")
+        raise HTTPException(status_code=500, detail="Google sign-in failed")
 
 
 @router.get("/me", response_model=UserResponse)

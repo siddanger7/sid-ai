@@ -14,43 +14,23 @@ export interface AuthResponse {
   user: User;
 }
 
-export async function signup(
-  email: string,
-  password: string,
-  username: string
-): Promise<AuthResponse> {
-  const res = await fetch(`${API_URL}/auth/signup`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password, username }),
-  });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.detail || `Signup failed (${res.status})`);
-  }
-  return res.json();
-}
-
-export async function login(
-  email: string,
-  password: string
-): Promise<AuthResponse> {
-  const res = await fetch(`${API_URL}/auth/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
-  });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.detail || `Login failed (${res.status})`);
-  }
-  return res.json();
-}
-
 export async function fetchMe(token: string): Promise<User> {
   const res = await fetch(`${API_URL}/auth/me`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) throw new Error("Session expired");
+  return res.json();
+}
+
+export async function googleLogin(idToken: string): Promise<AuthResponse> {
+  const res = await fetch(`${API_URL}/auth/google`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id_token: idToken }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.detail || `Google sign-in failed (${res.status})`);
+  }
   return res.json();
 }

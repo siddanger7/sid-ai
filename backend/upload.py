@@ -51,6 +51,8 @@ async def upload_file(
     chunks = 0
     if text.strip():
         chunks = index_document(file.filename or safe_name, text)
+    else:
+        logger.info("No extractable text in '%s'", file.filename)
 
     logger.info("Uploaded '%s' (%d bytes, %d chunks)", file.filename, len(content), chunks)
 
