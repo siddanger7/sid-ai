@@ -6,5 +6,4 @@
   "env": {
     "NEXT_PUBLIC_API_URL": "https://sidai-backend.onrender.com"
   }
-  }
 }
