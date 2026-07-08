@@ -179,8 +179,42 @@ STEP 5: [✅] Update CORS origins on Render with actual Vercel URL
          CORS_ORIGINS: https://sid-ai-gamma.vercel.app,https://sidai-backend.onrender.com
 STEP 6: [✅] Deploy Google OAuth code changes
 STEP 7: [✅] Push + redeploy both services (multiple iterations)
-STEP 8: [  ] Verify Google sign-in works
-STEP 9: [  ] (Future) Deploy fine-tuned Qwen model on GPU
+STEP 8: [✅] Verify chat works end-to-end
+         - Chat streaming fixed (sync httpx in thread)
+         - Google sign-in works
+STEP 9: [  ] Upload & RAG fix (pending redeploy)
+STEP 10: [  ] (Future) Deploy fine-tuned Qwen model on GPU
+
+
+======================================================================
+PHASE 6: RAG FALLBACK & PDF UPLOAD FIX
+======================================================================
+
+[2026-07-08] Fixed RAG and PDF upload for free tier
+
+Problem:
+- ChromaDB requires PyTorch (~2 GB) → can't install on Render free tier
+- pymupdf was removed from prod-requirements.txt → PDF extraction broken
+
+Solution:
+--- backend/rag.py ---
+  Complete rewrite:
+  - Still tries ChromaDB first (for future paid upgrade)
+  - Falls back to in-memory keyword-based search when ChromaDB unavailable
+  - In-memory store: _fallback_docs list stores text chunks
+  - _search_fallback(): ranks chunks by keyword overlap with query
+  - Same API (index_document, search_documents, build_rag_context)
+
+--- backend/prod-requirements.txt ---
+  Added: pymupdf>=1.24.0,<2.0 (lightweight PDF library, ~30 MB)
+
+Limitations (free tier):
+- RAG data stored in memory → lost on server restart
+- Keyword search instead of semantic/vector search
+- Upgrading to a paid Render plan + adding ChromaDB will auto-enable
+  full vector RAG (no code changes needed)
+
+Status: ⏳ PENDING (push done, needs Render redeploy)
 
 
 ======================================================================

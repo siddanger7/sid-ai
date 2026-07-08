@@ -74,15 +74,11 @@ def extract_text(filename: str, content: bytes) -> str:
 
 def extract_pdf_text(content: bytes) -> str:
     try:
-        import fitz
-        doc = fitz.open(stream=content, filetype="pdf")
-        pages = []
-        for page in doc:
-            pages.append(page.get_text())
-        doc.close()
-        return "\n\n".join(pages).strip()
+        from io import BytesIO
+        from pdfminer.high_level import extract_text as pdfminer_extract
+        return pdfminer_extract(BytesIO(content)).strip()
     except ImportError:
-        logger.warning("PyMuPDF not installed, falling back to raw text")
+        logger.warning("PDF extractor not installed, falling back to raw text")
         return content.decode("utf-8", errors="replace")
     except Exception as e:
         logger.exception("PDF extraction failed")
