@@ -56,6 +56,7 @@ def chunk_text(text: str) -> list[str]:
 
 
 def index_document(file_name: str, content: str) -> int:
+    global _using_chroma
     _init_rag()
     chunks = chunk_text(content)
 
@@ -72,7 +73,6 @@ def index_document(file_name: str, content: str) -> int:
             logger.info("Indexed %d chunks from '%s' (ChromaDB)", len(chunks), file_name)
         except Exception as e:
             logger.warning("ChromaDB index failed, falling back: %s", e)
-            global _using_chroma
             _using_chroma = False
             _store_fallback(file_name, chunks)
             return len(chunks)
