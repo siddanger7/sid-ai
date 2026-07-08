@@ -14,6 +14,7 @@ from database import get_session, User
 from dependencies import get_current_user
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+logger = logging.getLogger("SID.AI")
 
 
 class SignupRequest(BaseModel):
@@ -145,9 +146,8 @@ async def google_login(req: GoogleLoginRequest, session: AsyncSession = Depends(
     except ValueError as e:
         raise HTTPException(status_code=401, detail=f"Invalid Google token: {e}")
     except Exception as e:
-        logger = logging.getLogger("SID.AI")
-        logger.exception("Google login failed")
-        raise HTTPException(status_code=500, detail="Google sign-in failed")
+        logger.exception("Google login failed: %s", e)
+        raise HTTPException(status_code=500, detail=f"Google sign-in failed: {e}")
 
 
 @router.get("/me", response_model=UserResponse)
