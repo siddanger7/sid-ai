@@ -11,7 +11,7 @@ services:
     plan: free
     region: oregon
     buildCommand: cd backend && pip install --no-cache-dir -r prod-requirements.txt
-    startCommand: cd backend && uvicorn app:app --host 0.0.0.0 --port $PORT
+    startCommand: cd backend && python -c "from app import app; print('Import OK')" && uvicorn app:app --host 0.0.0.0 --port $PORT 2>&1
     healthCheckPath: /health
     envVars:
       - key: JWT_SECRET_KEY
