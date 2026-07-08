@@ -182,7 +182,9 @@ STEP 7: [✅] Push + redeploy both services (multiple iterations)
 STEP 8: [✅] Verify chat works end-to-end
          - Chat streaming fixed (sync httpx in thread)
          - Google sign-in works
-STEP 9: [  ] Upload & RAG fix (pending redeploy)
+STEP 9: [✅] Upload & RAG fix
+         - PDF upload works (pdfminer.six)
+         - In-memory keyword RAG fallback (ChromaDB not needed)
 STEP 10: [  ] (Future) Deploy fine-tuned Qwen model on GPU
 
 
@@ -194,7 +196,8 @@ PHASE 6: RAG FALLBACK & PDF UPLOAD FIX
 
 Problem:
 - ChromaDB requires PyTorch (~2 GB) → can't install on Render free tier
-- pymupdf was removed from prod-requirements.txt → PDF extraction broken
+- pdfminer.six initial version constraint was too strict (<2024)
+- Python SyntaxError: global before variable usage → fixed
 
 Solution:
 --- backend/rag.py ---
@@ -204,17 +207,29 @@ Solution:
   - In-memory store: _fallback_docs list stores text chunks
   - _search_fallback(): ranks chunks by keyword overlap with query
   - Same API (index_document, search_documents, build_rag_context)
+  - Fixed: SyntaxError with global declaration order
 
 --- backend/prod-requirements.txt ---
-  Added: pymupdf>=1.24.0,<2.0 (lightweight PDF library, ~30 MB)
+  Added: pdfminer.six (pure Python PDF extractor, ~6.6 MB)
+  Note: pymupdf was tried first but failed to build on Render
+
+--- backend/upload.py ---
+  Changed: extract_pdf_text uses pdfminer.six instead of pymupdf
+
+--- render.yaml ---
+  Fixed: start command (reverted diagnostic)
+
+Known bugs encountered:
+1. "name '_using_chroma' is used prior to global declaration" →
+   Moved `global` to top of function ✅
 
 Limitations (free tier):
 - RAG data stored in memory → lost on server restart
 - Keyword search instead of semantic/vector search
-- Upgrading to a paid Render plan + adding ChromaDB will auto-enable
-  full vector RAG (no code changes needed)
+- To upgrade to full vector RAG: add chromadb to requirements
+  and deploy on a paid Render plan (no code changes needed)
 
-Status: ⏳ PENDING (push done, needs Render redeploy)
+Status: ✅ LIVE
 
 
 ======================================================================
