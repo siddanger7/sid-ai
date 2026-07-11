@@ -9,7 +9,7 @@ from typing import AsyncGenerator
 
 import httpx
 
-from config import OPENAI_API_KEY, OPENAI_BASE_URL, OPENAI_MODEL, LLAMA_SERVER_URL
+from config import OPENAI_API_KEY, OPENAI_BASE_URL, OPENAI_MODEL, LLAMA_SERVER_URL, MODEL_NAME
 from rag import build_rag_context
 
 logger = logging.getLogger("SID.AI")
@@ -68,8 +68,7 @@ def _llm_url() -> str:
 
 
 def _add_provider_fields(payload: dict) -> dict:
-    if _using_openai():
-        payload["model"] = OPENAI_MODEL
+    payload["model"] = OPENAI_MODEL if _using_openai() else MODEL_NAME
     return payload
 
 

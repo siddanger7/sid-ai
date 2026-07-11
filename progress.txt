@@ -376,5 +376,42 @@ Status: ⏸️ PAUSED — waiting for user to sign up at Oracle Cloud
          https://signup.cloud.oracle.com
 
 ======================================================================
+PHASE 8: MODEL_NAME CONFIGURATION
+======================================================================
+
+[2026-07-11] Added MODEL_NAME config for local inference
+
+Changes:
+--- backend/config.py ---
+  Added: MODEL_NAME env var (default: "Qwen/Qwen2.5-3B-Instruct")
+  Commented override for fine-tuned GGUF model
+
+--- backend/model.py ---
+  Changed: _add_provider_fields now always passes model field
+  - Cloud mode → OPENAI_MODEL (llama-3.1-8b-instant)
+  - Local mode → MODEL_NAME (Qwen/Qwen2.5-3B-Instruct)
+
+Status: ✅ DONE
+
+Oracle Cloud GGUF deployment: ⏸️ PAUSED (deferred by user)
+
+======================================================================
+PHASE 9: PROJECT REPORT DOCUMENT
+======================================================================
+
+[2026-07-11] Created comprehensive project report
+
+File: docs/SID.AI_Project_Report.md
+  - Complete first-person project narrative
+  - All resources, tools, and services documented
+  - Phase-by-phase breakdown of every step
+  - Challenges and solutions
+  - Deployment architecture (current + planned)
+  - API reference and environment variables
+  - Future plans
+
+Status: ✅ DONE
+
+======================================================================
 END OF PROGRESS LOG
 ======================================================================

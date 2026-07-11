@@ -8,6 +8,11 @@ OPENAI_API_KEY: str = os.environ.get("OPENAI_API_KEY", "")
 OPENAI_BASE_URL: str = os.environ.get("OPENAI_BASE_URL", "https://api.groq.com/openai/v1")
 OPENAI_MODEL: str = os.environ.get("OPENAI_MODEL", "llama-3.1-8b-instant")
 
+# Default model for CPU or low-resource devices (Qwen2.5-3B-Instruct).
+# If a GPU is available, uncomment below to use the fine-tuned GGUF model.
+# MODEL_NAME = "sid-ai-q4_k_m.gguf"
+MODEL_NAME: str = os.environ.get("MODEL_NAME", "Qwen/Qwen2.5-3B-Instruct")
+
 # Auto-detect provider: if OPENAI_API_KEY is set, use OpenAI-compatible API
 # Otherwise fall back to local llama-server
 LLAMA_SERVER_URL: str = os.environ.get("LLAMA_SERVER_URL", "http://127.0.0.1:8081/v1/chat/completions")
