@@ -90,11 +90,14 @@ I wanted to build my own AI assistant that I could fully control — not just a 
 ### LLM / Model
 
 | Resource | Details |
-|---|---|
+|---|---|---|
 | **Base model** | Qwen2.5-3B-Instruct (unsloth/Qwen2.5-3B-Instruct-bnb-4bit) |
-| **Fine-tuning framework** | Unsloth + TRL (Transformer Reinforcement Learning) |
+| **Fine-tuning platform** | Lightning AI — NVIDIA L4 GPU (24 GB VRAM) |
+| **Fine-tuning framework** | Unsloth + TRL (SFTTrainer) |
 | **Fine-tuning method** | QLoRA (4-bit quantized LoRA), rank=16, 7 target modules |
-| **Training data** | Custom SFT dataset |
+| **Training data** | databricks/databricks-dolly-15k (1000 samples subset) |
+| **Training config** | Batch size=2, Grad accumulation=8, Epochs=1, LR=2e-4 |
+| **Trainable params** | 29.9M / 3.1B total (~0.96%) |
 | **Checkpoint** | `outputs/checkpoint-63/` — 63 steps, loss 2.93 → 1.55 |
 | **GGUF quantized model** | `outputs/sid-ai-q4_k_m.gguf` (Q4_K_M, 1.93 GB) |
 | **Inference engine** | llama.cpp (`llama-server.exe`) |
@@ -103,7 +106,8 @@ I wanted to build my own AI assistant that I could fully control — not just a 
 ### Cloud Services
 
 | Service | Tier | Purpose |
-|---|---|---|
+|---|---|---|---|
+| Lightning AI | Free credits | Model training (NVIDIA L4 GPU, 24 GB VRAM) |
 | Vercel | Free | Frontend hosting (global CDN) |
 | Render | Free | Backend hosting (Python, ephemeral storage) |
 | Groq | Free | Cloud LLM inference (LPU hardware) |
@@ -214,25 +218,123 @@ For the LLM, I used Qwen2.5-3B-Instruct as the base model. The `llama_bin/` fold
 - Qwen2.5-3B-Instruct on Hugging Face
 - SSE (Server-Sent Events) specification
 
-### Phase 3: Fine-Tuning the Model
+### Phase 3: Training Environment Setup (Lightning AI)
 
-I fine-tuned Qwen2.5-3B-Instruct using Unsloth with QLoRA:
+I used **Lightning AI** as my training platform. It provides a cloud GPU environment with Jupyter notebooks, making it easy to iterate on training without worrying about local hardware.
 
-- **Base model:** `unsloth/Qwen2.5-3B-Instruct-bnb-4bit`
-- **Framework:** Unsloth + TRL (SFTTrainer)
-- **LoRA config:** rank=16, target modules: q_proj, v_proj, o_proj, gate_proj, up_proj, down_proj, k_proj
-- **Training:** 63 steps, 1 epoch, batch size 2, loss improved from 2.93 to 1.55
-- **Output:** LoRA adapter at `outputs/checkpoint-63/`
+**Platform details:**
+- **Platform:** Lightning AI
+- **GPU:** NVIDIA L4 (24 GB VRAM)
+- **Environment:** Python notebook
 
-After fine-tuning, I converted the LoRA adapter + base model to GGUF format using `llama-quantize.exe` with Q4_K_M quantization. This produced `outputs/sid-ai-q4_k_m.gguf` (1.93 GB).
+**Main libraries installed:**
+- Unsloth — 2x faster fine-tuning with optimized kernels
+- Transformers — Hugging Face model handling
+- TRL — Transformer Reinforcement Learning (SFTTrainer)
+- PEFT — Parameter-Efficient Fine-Tuning
+- BitsAndBytes — 4-bit quantization
+- PyTorch — Deep learning framework
+- Accelerate — Multi-GPU / mixed precision support
 
-**Key resources used:**
-- Unsloth (https://github.com/unslothai/unsloth) — 2x faster fine-tuning with reduced memory
-- TRL (Transformer Reinforcement Learning) by Hugging Face
-- llama.cpp quantization tools
-- Hugging Face Transformers
+### Phase 4: Choosing the Base Model
 
-### Phase 4: RAG System
+I selected **unsloth/Qwen2.5-3B-Instruct-bnb-4bit** as my base model for several reasons:
+
+- **Small enough for L4 GPU** — 3B parameters fits comfortably in 24 GB VRAM
+- **Strong instruction-following** — Qwen2.5-Instruct models are well-trained for chat
+- **4-bit quantized** — The bnb-4bit version reduces memory usage significantly
+- **Faster training** — Less data movement means quicker iterations
+- **Lower VRAM usage** — Leaves room for larger batch sizes or gradient accumulation
+
+### Phase 5: Dataset Selection
+
+I chose the **databricks/databricks-dolly-15k** dataset, a high-quality instruction-following dataset created by Databricks.
+
+**Dataset details:**
+- **Source:** databricks/databricks-dolly-15k on Hugging Face
+- **Total size:** 15,000+ instruction-response pairs
+- **My subset:** 1,000 samples
+- **Reason for subset:** Keep training fast while testing the pipeline; full dataset can be used later
+
+I initially inspected the dataset structure, then selected a representative subset for training.
+
+### Phase 6: Fine-Tuning Configuration & Training
+
+I used **QLoRA** (Quantized Low-Rank Adaptation) to fine-tune the model efficiently.
+
+**Training configuration:**
+
+| Setting | Value |
+|---|---|
+| Quantization | 4-bit (BitsAndBytes) |
+| LoRA rank (r) | 16 |
+| LoRA alpha | 16 |
+| LoRA dropout | 0 |
+| Target modules | q_proj, v_proj, o_proj, gate_proj, up_proj, down_proj, k_proj |
+| Batch size | 2 |
+| Gradient accumulation | 8 |
+| Effective batch size | 16 |
+| Epochs | 1 |
+| Learning rate | 2e-4 |
+| Optimizer | AdamW |
+| Mixed precision | FP16 |
+| Gradient checkpointing | Enabled |
+
+**Training statistics:**
+- **Total parameters:** 3.1 billion
+- **Trainable parameters:** ~29.9 million (only ~0.96%!)
+- **Steps:** 63
+- **Loss progression:** 2.93 → 1.55 (steady improvement)
+- **Framework:** Unsloth trainer with TRL's SFTTrainer
+
+During training, I monitored GPU utilization and watched the loss decrease steadily. The LoRA adapter was created at the end — only 0.96% of the total model parameters were actually trained, which is the magic of LoRA.
+
+**Training pipeline:**
+```
+Dataset (1000 samples)
+       ↓
+Unsloth SFTTrainer
+       ↓
+4-bit QLoRA fine-tuning
+       ↓
+Loss: 2.93 → 1.55
+       ↓
+LoRA adapter saved → outputs/checkpoint-63/
+```
+
+### Phase 7: Saving & Inference Testing
+
+After training, I saved:
+- **LoRA adapters** — `adapter_model.safetensors`, `adapter_config.json`
+- **Tokenizer** — `tokenizer_config.json`, `tokenizer.json`
+- **Training state** — `trainer_state.json`, `training_args.bin`
+
+I then wrote inference code to test the model directly inside Lightning AI:
+
+```
+User Prompt → Tokenizer → Qwen Model → Generate() → Decoded Response
+```
+
+The inference pipeline:
+1. Take a user prompt
+2. Tokenize it with Qwen's tokenizer
+3. Pass through the fine-tuned model
+4. Generate response with `model.generate()`
+5. Decode the output tokens back to text
+
+I tested several prompts directly in the Lightning AI notebook and the responses were coherent and followed the instruction format.
+
+### Phase 8: GGUF Conversion
+
+After confirming the fine-tuned model worked, I converted the LoRA adapter (merged with the base model) to GGUF format for deployment with llama.cpp:
+
+- **Tool:** `llama-quantize.exe` (from llama.cpp)
+- **Quantization:** Q4_K_M
+- **Output:** `outputs/sid-ai-q4_k_m.gguf` (1.93 GB)
+
+This GGUF file can be served by `llama-server.exe` on any platform, making it ready for local inference or cloud deployment.
+
+### Phase 9: RAG System
 
 I implemented a full RAG pipeline:
 
@@ -247,7 +349,7 @@ I implemented a full RAG pipeline:
 - sentence-transformers/all-MiniLM-L6-v2 embeddings
 - PyMuPDF (pdfminer.six in production)
 
-### Phase 5: Dual-Mode LLM Provider
+### Phase 10: Dual-Mode LLM Provider
 
 I made the backend auto-detect the LLM provider:
 
@@ -266,7 +368,7 @@ Initially used `LLM_PROVIDER` env var, then refactored to auto-detect based on `
 - Groq API (https://console.groq.com)
 - httpx library for async HTTP calls
 
-### Phase 6: Streaming Fix & Quality of Life
+### Phase 11: Streaming Fix & Quality of Life
 
 I fixed a critical bug where streaming responses would hang indefinitely if the LLM server returned an error. The solution:
 
@@ -279,7 +381,7 @@ Also added:
 - Better logging throughout
 - Frontend improvements: SettingsModal with localStorage persistence, Dockerfile build args
 
-### Phase 7: Google OAuth Implementation
+### Phase 12: Google OAuth Implementation
 
 I removed the email/password authentication and switched to Google-only sign-in:
 
@@ -305,7 +407,7 @@ I removed the email/password authentication and switched to Google-only sign-in:
 - Google Identity Services library (GSI)
 - google-auth Python library
 
-### Phase 8: Deployment — Render + Vercel
+### Phase 13: Deployment — Render + Vercel
 
 I deployed the application using free tiers:
 
@@ -328,7 +430,7 @@ I deployed the application using free tiers:
 - Vercel (https://vercel.com)
 - render.yaml Blueprint documentation
 
-### Phase 9: Production RAG Fixes
+### Phase 14: Production RAG Fixes
 
 When deploying, I discovered that ChromaDB requires PyTorch (~2GB), which exceeds the Render free tier build limits (15 minutes). I implemented:
 
@@ -343,7 +445,7 @@ The `prod-requirements.txt` was created as a minimal dependency set, excluding c
 - pdfminer.six (pure Python PDF extractor)
 - Python's standard library for the keyword fallback
 
-### Phase 10: MODEL_NAME Configuration (Latest)
+### Phase 15: MODEL_NAME Configuration (Latest)
 
 I added a `MODEL_NAME` configuration variable to cleanly distinguish between the default model and the fine-tuned model:
 
@@ -506,9 +608,11 @@ I also configured deployment for:
 - **Groq Console:** https://console.groq.com
 - **Google Cloud Console:** https://console.cloud.google.com
 - **Oracle Cloud Signup:** https://signup.cloud.oracle.com
+- **Lightning AI:** https://lightning.ai
 - **llama.cpp:** https://github.com/ggerganov/llama.cpp
 - **Unsloth:** https://github.com/unslothai/unsloth
 - **Qwen2.5 on Hugging Face:** https://huggingface.co/Qwen/Qwen2.5-3B-Instruct
+- **Databricks Dolly 15k Dataset:** https://huggingface.co/datasets/databricks/databricks-dolly-15k
 - **Fine-tuned model (private):** https://huggingface.co/siddanger/sid-ai-model
 
 ---

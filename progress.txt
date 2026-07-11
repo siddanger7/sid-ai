@@ -404,7 +404,14 @@ PHASE 9: PROJECT REPORT DOCUMENT
 File: docs/SID.AI_Project_Report.md
   - Complete first-person project narrative
   - All resources, tools, and services documented
-  - Phase-by-phase breakdown of every step
+  - Phase-by-phase breakdown of every step (15 phases)
+  - Detailed Lightning AI training section (Phases 3-7):
+    - Environment setup (NVIDIA L4 GPU)
+    - Base model selection (Qwen2.5-3B-Instruct-bnb-4bit)
+    - Dataset: databricks-dolly-15k (1000 samples)
+    - QLoRA configuration & training (29.9M/3.1B params)
+    - Inference testing notebook
+    - GGUF conversion (Q4_K_M, 1.93 GB)
   - Challenges and solutions
   - Deployment architecture (current + planned)
   - API reference and environment variables
