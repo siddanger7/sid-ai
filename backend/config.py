@@ -8,8 +8,10 @@ OPENAI_API_KEY: str = os.environ.get("OPENAI_API_KEY", "")
 OPENAI_BASE_URL: str = os.environ.get("OPENAI_BASE_URL", "https://api.groq.com/openai/v1")
 OPENAI_MODEL: str = os.environ.get("OPENAI_MODEL", "llama-3.1-8b-instant")
 
-# Default model for CPU or low-resource devices (Qwen2.5-3B-Instruct).
-# If a GPU is available, uncomment below to use the fine-tuned GGUF model.
+# Two models available:
+#   1) CPU / low-resource → Qwen/Qwen2.5-3B-Instruct (default)
+#   2) GPU (fine-tuned by me) → sid-ai-q4_k_m.gguf
+# Uncomment the GPU line below when running on a GPU machine.
 # MODEL_NAME = "sid-ai-q4_k_m.gguf"
 MODEL_NAME: str = os.environ.get("MODEL_NAME", "Qwen/Qwen2.5-3B-Instruct")
 

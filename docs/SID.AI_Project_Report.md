@@ -28,7 +28,8 @@ SID.AI is a full-stack AI chat application that I built from scratch. It feature
 - **Conversation history** saved per user
 - **RAG (Retrieval-Augmented Generation)** — upload PDFs/TXT/MD/CSV files and ask questions about them
 - **Web search** integration via Google Custom Search
-- **Dual-mode inference** — uses Groq's free cloud API when available, falls back to local GGUF model via llama.cpp
+- **Two models** — Default Qwen2.5-3B-Instruct for CPU/low-resource, and my fine-tuned QLoRA model (sid-ai-q4_k_m.gguf) for GPU
+- **Dual-mode inference** — uses Groq's free cloud API when available, falls back to local llama-server
 
 The project is fully deployed and accessible at:
 - **Frontend:** https://sid-ai-gamma.vercel.app
@@ -87,11 +88,23 @@ I wanted to build my own AI assistant that I could fully control — not just a 
 | chromadb | 1.5+ | Vector database for RAG (optional, heavy) |
 | PyTorch | — | Required by chromadb (~2GB, not on free tier) |
 
-### LLM / Model
+### LLM / Model (Two Models)
 
+I maintain two models for different hardware scenarios:
+
+**Model 1 — Default (CPU / Low-Resource)**
 | Resource | Details |
-|---|---|---|
-| **Base model** | Qwen2.5-3B-Instruct (unsloth/Qwen2.5-3B-Instruct-bnb-4bit) |
+|---|---|
+| **Model name** | `Qwen/Qwen2.5-3B-Instruct` |
+| **Format** | HuggingFace Transformers |
+| **Purpose** | CPU, low-RAM, or no-GPU devices |
+| **Inference** | llama-server with any Qwen GGUF, or via transformers |
+
+**Model 2 — Fine-Tuned (GPU — by me)**
+| Resource | Details |
+|---|---|
+| **Model name** | `sid-ai-q4_k_m.gguf` (my custom model) |
+| **Base model** | unsloth/Qwen2.5-3B-Instruct-bnb-4bit |
 | **Fine-tuning platform** | Lightning AI — NVIDIA L4 GPU (24 GB VRAM) |
 | **Fine-tuning framework** | Unsloth + TRL (SFTTrainer) |
 | **Fine-tuning method** | QLoRA (4-bit quantized LoRA), rank=16, 7 target modules |
@@ -99,9 +112,15 @@ I wanted to build my own AI assistant that I could fully control — not just a 
 | **Training config** | Batch size=2, Grad accumulation=8, Epochs=1, LR=2e-4 |
 | **Trainable params** | 29.9M / 3.1B total (~0.96%) |
 | **Checkpoint** | `outputs/checkpoint-63/` — 63 steps, loss 2.93 → 1.55 |
-| **GGUF quantized model** | `outputs/sid-ai-q4_k_m.gguf` (Q4_K_M, 1.93 GB) |
+| **GGUF file** | `outputs/sid-ai-q4_k_m.gguf` (Q4_K_M, 1.93 GB) |
+| **Purpose** | GPU inference (Oracle Cloud or local GPU) |
+
+**Shared**
+| Resource | Details |
+|---|---|
 | **Inference engine** | llama.cpp (`llama-server.exe`) |
 | **Cloud fallback** | Groq API (free tier) — `llama-3.1-8b-instant`, 30 req/min |
+| **Config switch** | `MODEL_NAME` env var (default: `Qwen/Qwen2.5-3B-Instruct`, switch to `sid-ai-q4_k_m.gguf` for GPU) |
 
 ### Cloud Services
 
@@ -445,19 +464,51 @@ The `prod-requirements.txt` was created as a minimal dependency set, excluding c
 - pdfminer.six (pure Python PDF extractor)
 - Python's standard library for the keyword fallback
 
-### Phase 15: MODEL_NAME Configuration (Latest)
+### Phase 15: MODEL_NAME Configuration (Two Models)
 
-I added a `MODEL_NAME` configuration variable to cleanly distinguish between the default model and the fine-tuned model:
+I added a `MODEL_NAME` configuration variable to support two distinct models:
 
-- `config.py`: Added `MODEL_NAME` env var defaulting to `"Qwen/Qwen2.5-3B-Instruct"`
+| Model | When to use | Value |
+|---|---|---|
+| **Qwen2.5-3B-Instruct** (default) | CPU / low-resource devices | `Qwen/Qwen2.5-3B-Instruct` |
+| **sid-ai-q4_k_m.gguf** (fine-tuned by me) | GPU available | `sid-ai-q4_k_m.gguf` |
+
+Changes made:
+- `config.py`: Added `MODEL_NAME` env var defaulting to `"Qwen/Qwen2.5-3B-Instruct"`, with `sid-ai-q4_k_m.gguf` commented out as the GPU option
 - `model.py`: `_add_provider_fields` now always sends the model field — uses `OPENAI_MODEL` for cloud mode, `MODEL_NAME` for local mode
-- This prepares for when I deploy the fine-tuned GGUF model on a GPU instance
+- When I deploy the fine-tuned GGUF on a GPU (e.g. Oracle Cloud), I just uncomment the line
 
 ---
 
 ## 6. Deployment Architecture
 
-### Current (Free Tier)
+### CPU Mode (No GPU / Low-Resource)
+
+```
+User → Frontend (Next.js) → Backend (FastAPI) → llama-server (CPU)
+                                                      |
+                                          Qwen2.5-3B-Instruct (GGUF)
+```
+
+- Uses the default `Qwen/Qwen2.5-3B-Instruct` model
+- Runs entirely on CPU via llama.cpp (`llama-server.exe`)
+- `MODEL_NAME` set to `"Qwen/Qwen2.5-3B-Instruct"`
+
+### GPU Mode (Fine-Tuned Model by Me)
+
+```
+User → Frontend (Next.js) → Backend (FastAPI) → llama-server (GPU)
+                                                      |
+                                           sid-ai-q4_k_m.gguf (1.93 GB)
+                                              My fine-tuned QLoRA model
+```
+
+- Uses my custom fine-tuned GGUF model
+- Requires a GPU (e.g. Oracle Cloud A1.Flex, local NVIDIA GPU)
+- Just uncomment `MODEL_NAME = "sid-ai-q4_k_m.gguf"` in config
+- Better performance since the model was trained on my data
+
+### Cloud Mode (Free Tier — Deployed Now)
 
 ```
 User → Vercel (Frontend) → Render (Backend) → Groq API (Cloud LLM)
@@ -472,7 +523,7 @@ User → Vercel (Frontend) → Render (Backend) → Groq API (Cloud LLM)
 - **RAG:** In-memory keyword search (ChromaDB would require paid plan)
 - **Web Search:** Google Custom Search API
 
-### Planned (with Oracle Cloud GPU)
+### Planned: Oracle Cloud GPU
 
 ```
 User → Vercel (Frontend) → Render (Backend) → Oracle VM (Fine-tuned GGUF)
@@ -570,7 +621,7 @@ I also configured deployment for:
 | `OPENAI_API_KEY` | (empty) | API key for cloud LLM |
 | `OPENAI_BASE_URL` | `https://api.groq.com/openai/v1` | LLM API base URL |
 | `OPENAI_MODEL` | `llama-3.1-8b-instant` | Cloud model name |
-| `MODEL_NAME` | `Qwen/Qwen2.5-3B-Instruct` | Local model name |
+| `MODEL_NAME` | `Qwen/Qwen2.5-3B-Instruct` | Local model name (CPU default). Set to `sid-ai-q4_k_m.gguf` for GPU |
 | `LLAMA_SERVER_URL` | `http://127.0.0.1:8081/v1/chat/completions` | Local llama-server |
 | `DATABASE_URL` | `sqlite+aiosqlite:///./sidai.db` | Database connection |
 | `CORS_ORIGINS` | `http://localhost:3000,...` | Allowed origins |
